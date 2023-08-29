@@ -1,0 +1,91 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Deseo = Chico -> Chico
+
+data Chico = Chico{
+nombreChico :: String,
+edadChico :: Number,
+habilidadesChico :: [String],
+deseosChico :: [Deseo]
+} deriving (Show,Eq)
+
+aprenderHabilidades :: [String] -> Deseo
+aprenderHabilidades listaHabilidades unChico = unChico { habilidadesChico = ((habilidadesChico unChico) ++ listaHabilidades)}
+
+nfs :: [String]
+nfs = zipWith (++) (repeat "jugar need for speed") (map show [1..])
+
+serGrosoEnNeedForSpeed :: Deseo
+serGrosoEnNeedForSpeed unChico = unChico { habilidadesChico = (habilidadesChico unChico) ++ nfs}
+
+serMayor :: Deseo
+serMayor unChico = unChico { edadChico = 18}
+
+cumplirDeseo :: Deseo -> Deseo
+cumplirDeseo unDeseo unChico = unDeseo unChico
+
+wanda :: Deseo
+wanda unChico = (serMayor . (flip (cumplirDeseo) unChico) . head . deseosChico) unChico
+
+desmadurar :: Deseo
+desmadurar unChico = unChico {edadChico = div (edadChico unChico) 2}
+
+cosmo :: Deseo
+cosmo = desmadurar
+
+muffinMagico :: Deseo
+muffinMagico unChico = (foldl (flip (cumplirDeseo)) unChico . deseosChico) unChico
+
+type Condicion = Chico -> Bool
+
+data Chica = Chica {
+nombreChica :: String,
+condicionChico :: Condicion
+} deriving (Show,Eq)
+
+
+tieneHabilidad :: String -> Condicion
+tieneHabilidad unaHabilidad unChico = (elem unaHabilidad . habilidadesChico) unChico
+
+esMayor :: Condicion
+esMayor unChico = ((>18).edadChico) unChico
+
+esSuperMaduro :: Condicion
+esSuperMaduro unChico = tieneHabilidad "manejar" unChico && esMayor unChico
+
+findOrElse :: (a -> Bool) -> a -> [a] -> a
+findOrElse _ _ [a] = a
+findOrElse cond val (x:xs) | cond x = x
+                           | otherwise = findOrElse cond val xs
+
+quienConquistaA :: Chica -> [Chico] -> Chico
+quienConquistaA unaChica listaChicos = findOrElse (condicionChico unaChica) (last listaChicos) listaChicos
+
+habilidadesProhibidas :: [String]
+habilidadesProhibidas = ["enamorar","matar","dominar el mundo"]
+
+esHabilidadProhibida :: String -> Bool
+esHabilidadProhibida unaHabilidad = elem unaHabilidad habilidadesProhibidas
+
+esProhibido :: Chico -> Deseo -> Bool
+esProhibido unChico unDeseo = (any esHabilidadProhibida . take 5 . habilidadesChico . unDeseo) unChico
+
+tieneDeseosProhibidos :: Chico -> Bool
+tieneDeseosProhibidos unChico = (any (esProhibido unChico) . deseosChico) unChico
+
+infractoresDeDaRules :: [Chico] -> [String]
+infractoresDeDaRules listaChicos = (map nombreChico . filter (tieneDeseosProhibidos)) listaChicos
+
+
+
+
+
+
+
+
+
+
+
+ 

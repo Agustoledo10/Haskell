@@ -1,0 +1,72 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Fecha = (Number,Number,Number)
+
+-- gongNeng   Ord b => :: b -> (b -> Bool) -> (a -> b) -> [a] -> b
+--gongNeng arg1 arg2 arg3 = max arg1 . head . filter arg2 . map arg3
+
+-- no se puede calcular la liquidacion puesto que dicha funcion requiere de una evaluacion ansiosa, es decir necesita considerar el costo de cada viaje para sumarlo,
+-- al proximo, hasta que no haya mas costos a sumar, pero en este caso los costos nunca terminan
+-- puede saber si toma otro x viaje, pues evalua unicamente ese apartado del dato compuesto, es decir, aquello que necesita estrictamente para dar respuesta
+-- a esa funcion
+
+data Cliente = Cliente{
+nombreCliente :: String,
+zonaResidencia :: String
+} deriving (Show,Eq)
+
+data Viaje = Viaje{
+fecha :: Fecha,
+cliente :: Cliente,
+costo :: Number
+} deriving (Show,Eq)
+
+data Chofer = Chofer{
+nombreChofer :: String,
+kmAuto :: Number,
+viajes :: [Viaje],
+condicion :: (Viaje -> Bool)
+} deriving (Show,Eq)
+
+tomaCualquiera :: Viaje -> Bool
+tomaCualquiera unViaje = True
+
+tomaViajesCaros :: Viaje -> Bool
+tomaViajesCaros unViaje = ((>200) . costo) unViaje
+
+tomaViajeNombreNLetras :: Number -> Viaje -> Bool
+tomaViajeNombreNLetras unNumero unViaje = ((>unNumero).length. nombreCliente . cliente) unViaje
+
+noTomaViajeA :: String -> Viaje -> Bool
+noTomaViajeA unaZona unViaje = ((/= unaZona) . zonaResidencia . cliente) unViaje
+
+lucas = Cliente "Lucas" "Victoria"
+
+daniel = Chofer "Daniel" 23500 [(Viaje (20,4,2017) lucas 150)] (noTomaViajeA "Olivos")
+
+alejandar = Chofer "Alejandra" 180000 [] tomaCualquiera
+
+tomaViaje :: Viaje -> Chofer -> Bool
+tomaViaje unViaje unChofer = (condicion unChofer) unViaje
+
+liquidacionChofer :: Chofer -> Number
+liquidacionChofer unChofer = (sum . map costo . viajes) unChofer
+
+minimoSegun _ [a] = a
+minimoSegun f (x:y:ys) | f x < f y = minimoSegun f (x:ys)
+                       | otherwise = minimoSegun f (y:ys)
+
+efectuarViaje :: Viaje -> Chofer -> Chofer
+efectuarViaje unViaje unChofer = unChofer { viajes = (viajes unChofer) ++ [unViaje]}
+
+realizarUnViaje :: Viaje -> [Chofer] -> Chofer
+realizarUnViaje unViaje listaChoferes = ( efectuarViaje unViaje . minimoSegun (length.viajes) . filter (tomaViaje unViaje)) listaChoferes
+
+repetirViaje viaje = viaje : repetirViaje viaje
+
+nitoInfy = Chofer "Nito Infy" 70000 (repetirViaje (Viaje (11,3,2017) lucas 50)) (tomaViajeNombreNLetras 3)
+
+-- no se puede calcular liquidacion pues diverge, necesita la totalidad viajes para calcular la sumatoria de sus costos, lo cual no puede obtener dado que los viajes son infintos
+-- se puede dado que la condicion no tiene nada que ver con la lista infinita de viajes tomados

@@ -1,0 +1,90 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+import Prelude (Float)
+
+data Elemento = Elemento { 
+tipo :: String,
+ataque :: (Personaje-> Personaje),
+defensa :: (Personaje-> Personaje) 
+} deriving (Show,Eq)
+
+data Personaje = Personaje { 
+nombre :: String,
+salud :: Number,
+elementos :: [Elemento],
+anioPresente :: Number 
+} deriving (Show,Eq)
+
+type Transformacion = Personaje -> Personaje
+
+mandarAlAnio :: Number -> Transformacion
+mandarAlAnio unAnio unPersonaje = unPersonaje { anioPresente = unAnio}
+
+modificarVida :: (Number -> Number) -> Transformacion
+modificarVida unaModificacion unPersonaje = unPersonaje {salud = unaModificacion . salud $ unPersonaje}
+
+meditar :: Transformacion
+meditar unPersonaje = modificarVida (*1.5) unPersonaje
+
+restarVida :: Number -> Number -> Number
+restarVida danioACausar vidaTotal = max 0 (vidaTotal - danioACausar)
+
+causarDanio :: Number -> Transformacion
+causarDanio danioACausar unPersonaje = modificarVida (restarVida danioACausar) unPersonaje
+
+esElementoMalvado :: Elemento -> Bool
+esElementoMalvado unElemento = ((=="Maldad") . tipo) unElemento
+
+esMalvado :: Personaje -> Bool
+esMalvado unPersonaje = (any (esElementoMalvado) . elementos) unPersonaje
+
+danioQueProduce :: Personaje -> Elemento -> Number
+danioQueProduce unPersonaje unElemento =  (salud unPersonaje) - (salud . (ataque unElemento) $ unPersonaje)
+
+estaMuerto :: Personaje -> Bool
+estaMuerto unPersonaje = ((==0) . salud) unPersonaje
+
+esMortal :: Personaje -> Elemento -> Bool
+esMortal unPersonaje unElemento = (estaMuerto .(ataque unElemento)) unPersonaje
+
+esEnemigoMortal :: Personaje -> Personaje -> Bool
+esEnemigoMortal unPersonaje unEnemigo = any (esMortal unPersonaje) . elementos) unPersonaje
+
+enemigosMortales :: Personaje -> [Personaje] -> [Personaje]
+enemigosMortales unPersonaje listaEnemigos = filter (esEnemigoMortal unPersonaje) listaEnemigos
+
+meditarNVeces :: Number -> Personaje -> Personaje
+meditarNVeces nivelConcentracion unPersonaje = (!!) (iterate meditar unPersonaje) nivelConcentracion
+
+concentracion :: Number -> Elemento
+concentracion nivelConcentracion = Elemento "Magia" id (meditarNVeces nivelConcentracion)
+
+esbirrosMalvados :: Number -> [Elemento]
+esbirrosMalvados unaCantidad = replicate unaCantidad (Elemento "Maldad" (causarDanio 1) id)
+
+katanaMagica :: Elemento
+katanaMagica = Elemento "Magia" (causarDanio 1000) id 
+
+jack :: Personaje
+jack = Personaje "Jack" 300 [katanaMagica,(concentracion 3)] 200
+
+setearVida :: Number -> Number -> Number
+setearVida vidaNueva vidaAnterior = vidaNueva
+
+portalAlFuturo :: Number -> Number -> Elemento
+portalAlFuturo anioVive saludInicial = Elemento "Magia" (mandarAlAnio (2800 + anioVive)) (modificarVida (setearVida saludInicial) . mandarAlAnio (2800 + anioVive))
+
+aku :: Number -> Number -> Personaje
+aku anioVive saludInicial = Personaje "Aku" saludInicial ((esbirrosMalvados (100*anioVive)) ++ [concentracion 4, (portalAlFuturo anioVive saludInicial)]) anioVive
+  
+atacanteUsaElementos :: (Elemento -> Transformacion) -> [Elemento] -> Personaje -> Personaje
+atacanteUsaElementos tipoDeElemento listaElementos unAfectado  = (foldl (flip ($)) unAfectado . map tipoDeElemento) listaElementos
+
+luchaPersonajes :: Personaje -> Personaje -> (Personaje,Personaje)
+luchaPersonajes unAtacante unDefensor | estaMuerto unAtacante = (unDefensor,unAtacante)
+                                      | otherwise = luchaPersonajes (atacanteUsaElementos ataque (elementos unAtacante) unDefensor) (atacanteUsaElementos defensa (elementos unAtacante) unAtacante)
+
+
+
+

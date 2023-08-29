@@ -1,0 +1,104 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Pelicula = Pelicula {
+nombrePelicula :: String,
+generoPelicula :: String,
+duracionPelicula :: Number,
+origenPelicula :: String
+} deriving (Show,Eq)
+
+data Usuario = Usuario {
+nombreUsuario :: String,
+categoriaUsuario :: String,
+edadUsuario :: Number,
+paisResidencia :: String,
+peliculasVistas :: [Pelicula],
+estadoSalud :: Number
+} deriving (Show,Eq)
+
+psicosis = Pelicula "Psicosis" "Terror" 109 "Estados Unidos"
+perfumeDeMujer= Pelicula "Perfume de Mujer" "Drama" 150 "Estados Unidos"
+elSaborDeLasCervezas = Pelicula "El sabor de las cervezas" "Drama" 95 "Iran"
+lasTortugasTambienVuelan = Pelicula "Las tortugas también vuelan" "Drama"103 "Iran&"
+juan = Usuario "juan" "estandar" 23 "Argentina" [perfumeDeMujer] 60
+
+pelisEmpresa :: [Pelicula]
+pelisEmpresa = [psicosis,perfumeDeMujer,elSaborDeLasCervezas,lasTortugasTambienVuelan]
+
+verPelicula :: Pelicula -> Usuario -> Usuario
+verPelicula unaPelicula unUsuario = unUsuario {peliculasVistas = (peliculasVistas unUsuario) ++ [unaPelicula]}
+
+esInternacional :: Usuario -> Bool
+esInternacional unUsuario = ((/="Estados Unidos") . paisResidencia) unUsuario
+
+vioMasDe20 :: Usuario -> Bool
+vioMasDe20 unUsuario = ((>20).length.peliculasVistas) unUsuario
+
+cambiarCategoria :: String -> Usuario -> Usuario
+cambiarCategoria unaCategoria unUsuario = unUsuario { categoriaUsuario = unaCategoria }
+
+premiar :: Usuario -> Usuario
+premiar unUsuario | ((=="basica") . categoriaUsuario) unUsuario = cambiarCategoria "estandar" unUsuario
+                  | ((=="estandar") . categoriaUsuario) unUsuario = cambiarCategoria "premium" unUsuario   
+                  | otherwise = unUsuario
+
+premiarInternacionalesFieles :: [Usuario] -> [Usuario]
+premiarInternacionalesFieles listaUsuarios = (map premiar . filter vioMasDe20. filter esInternacional) listaUsuarios
+
+type Criterio = Pelicula -> Bool
+
+quedoCorto :: Criterio
+quedoCorto unaPelicula = ((<35).duracionPelicula) unaPelicula
+
+cuestionDeGenero :: [String] -> Criterio
+cuestionDeGenero listaGeneros unaPelicula = ((flip (elem) listaGeneros) . generoPelicula) unaPelicula
+
+deDondeSaliste :: String -> Criterio
+deDondeSaliste unOrigen unaPelicula = ((== unOrigen) . origenPelicula) unaPelicula
+
+
+vaPorEseLado :: Eq a =>  (Pelicula -> a) -> Pelicula ->  Criterio
+vaPorEseLado unaCararecteristica peliculaReferencia unaPelicula = (unaCararecteristica peliculaReferencia) == (unaCararecteristica unaPelicula)
+
+cumpleCriterio :: Criterio -> Criterio
+cumpleCriterio unCriterio unaPelicula = unCriterio unaPelicula
+
+noLaVio :: Usuario -> Pelicula -> Bool
+noLaVio unUsuario unaPelicula = (not . elem unaPelicula . peliculasVistas) unUsuario
+
+cumpleTodos :: [Criterio] -> Pelicula -> Bool
+cumpleTodos listaCriterios unaPelicula = all (flip (cumpleCriterio) unaPelicula) listaCriterios
+
+sugerirPeliculas :: Usuario -> [Criterio] -> [Pelicula]
+sugerirPeliculas unUsuario listaCriterios = (take 3. filter (cumpleTodos listaCriterios) . filter (noLaVio unUsuario)) pelisEmpresa
+
+ejemplo :: [Pelicula]
+ejemplo = sugerirPeliculas juan [(not . quedoCorto),cuestionDeGenero ["Drama", "Comedia"],deDondeSaliste "Iran"]
+
+type Efecto = Usuario -> Usuario
+
+data CapituloSerie = CapituloSerie{
+nombreCapitulo :: String,
+generoCapitulo:: String,
+duracionCapitulo :: Number,
+origenSerie :: String,
+efectoUsuario :: Efecto
+} deriving (Show,Eq)
+
+consumeCapitulo :: CapituloSerie -> Efecto
+consumeCapitulo unCapitulo unUsuario = (efectoUsuario unCapitulo) unUsuario
+
+capituloEj = CapituloSerie "The Red Wedding" "Accion dramatica" 50 "Reino Unido" (\unUsuario -> unUsuario{estadoSalud = 1})
+
+maraton :: [CapituloSerie] -> Efecto
+maraton listaCapitulos unUsuario = (foldl (flip ($)) unUsuario . map efectoUsuario) listaCapitulos
+
+-- Si la serie tuviera infinita cantidad de capitulos, no habria respuesta por parte de la funcion, dado que procesaria infinitamente el proximo capitulo que ve el usuario
+-- dado que seria necesario para obtener la respuesta del usuario luego de haber visto todos los capitulos de la lista
+
+maratonListaIndeterminada :: Number -> [CapituloSerie] -> Efecto
+maratonListaIndeterminada cantCaps listaCapitulos unUsuario = (foldl (flip ($)) unUsuario . map efectoUsuario . take cantCaps) listaCapitulos
+
+

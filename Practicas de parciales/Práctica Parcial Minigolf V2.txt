@@ -1,0 +1,132 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+-- Modelo inicial
+data Jugador = Jugador {
+  nombre :: String,
+  padre :: String,
+  habilidad :: Habilidad
+} deriving (Eq, Show)
+
+data Habilidad = Habilidad {
+  fuerzaJugador :: Number,
+  precisionJugador :: Number
+} deriving (Eq, Show)
+
+-- Jugadores de ejemplo
+bart = Jugador "Bart" "Homero" (Habilidad 25 60)
+todd = Jugador "Todd" "Ned" (Habilidad 15 80)
+rafa = Jugador "Rafa" "Gorgory" (Habilidad 10 1)
+
+data Tiro = Tiro {
+  velocidad :: Number,
+  precision :: Number,
+  altura :: Number
+} deriving (Eq, Show)
+
+type Puntos = Number
+
+-- Funciones útiles
+between n m x = elem x [n .. m]
+
+maximoSegun f = foldl1 (mayorSegun f)
+mayorSegun f a b
+  | f a > f b = a
+  | otherwise = b
+
+putter :: Habilidad -> Tiro
+putter unaHabilidad = Tiro 10 (((*2) . precisionJugador) unaHabilidad) 0
+
+madera :: Habilidad -> Tiro
+madera unaHabilidad = Tiro 100 (div (precisionJugador unaHabilidad) 2) 5
+
+hierro :: Number -> Habilidad -> Tiro
+hierro unNumero unaHabilidad = Tiro ((fuerzaJugador unaHabilidad) * unNumero) (div (precisionJugador unaHabilidad) unNumero) (unNumero -3)
+
+palos = [putter,madera,hierro 1, hierro 2, hierro 3, hierro 4, hierro 5, hierro 6, hierro 7,hierro 8,hierro 9, hierro 10]
+
+type Palo = (Habilidad -> Tiro)
+
+golpe :: Jugador -> Palo -> Tiro
+golpe unaJugador unPalo = unPalo (habilidad unaJugador)
+
+seDetiene :: Tiro -> Tiro
+seDetiene unTiro = Tiro 0 0 0 
+
+obstaculo :: Tiro -> (Tiro -> Bool) -> (Tiro -> Tiro) -> Tiro 
+obstaculo unTiro unaCondicion unEfecto | unaCondicion unTiro = unEfecto unTiro
+                                       | otherwise = seDetiene unTiro
+
+condicionTunel :: Tiro -> Bool
+condicionTunel unTiro = ((==0) . altura) unTiro && ((>90) . precision) unTiro
+
+efectoTunel :: Tiro -> Tiro
+efectoTunel unTiro = Tiro (2 * (velocidad unTiro)) 100 0 
+
+tunelConRampita :: Tiro -> Tiro
+tunelConRampita unTiro = obstaculo unTiro condicionTunel efectoTunel
+
+condicionLaguna :: Tiro -> Bool
+condicionLaguna unTiro = ((>80) . velocidad) unTiro && (((>1) . altura) unTiro || ((<5) . altura) unTiro)
+
+efectoLaguna :: Number -> Tiro -> Tiro
+efectoLaguna alturaLaguna unTiro = unTiro {altura = div (altura unTiro) alturaLaguna}
+
+unaLaguna :: Number -> Tiro -> Tiro
+unaLaguna unaAltura unTiro = obstaculo unTiro condicionLaguna (efectoLaguna unaAltura)
+
+condicionHoyo :: Tiro -> Bool
+condicionHoyo unTiro = (((>5) . velocidad) unTiro || ((<20) . velocidad) unTiro) && ((==0) . altura) unTiro && ((>95) . precision) unTiro 
+
+efectoHoyo :: Tiro -> Tiro
+efectoHoyo unTiro = seDetiene unTiro
+
+hoyo :: Tiro -> Tiro
+hoyo unTiro = obstaculo unTiro condicionHoyo efectoHoyo
+
+data Obstaculo = Obstaculo{
+condicion :: (Tiro -> Bool),
+efecto :: (Tiro -> Tiro)
+} deriving (Show,Eq)
+
+puedeSuperarlo :: Jugador -> Obstaculo -> Palo -> Bool
+puedeSuperarlo unJugador unObstaculo unPalo = (condicion unObstaculo) (unPalo (habilidad unJugador)) 
+
+palosUtiles :: Jugador -> Obstaculo -> [Palo]
+palosUtiles unJugador unObstaculo = filter (puedeSuperarlo unJugador unObstaculo) palos
+
+--obstaculosSuperados :: [Obstaculo] -> Tiro -> Number
+cantObstaculosSuperados :: Tiro -> [Obstaculo] -> Number
+cantObstaculosSuperados unTiro [] = 0
+cantObstaculosSuperados unTiro (x:xs)| (condicion x) unTiro = 1 + cantObstaculosSuperados unTiro xs
+                                     | otherwise = 0
+
+jugadorSuperaObstaculos :: Jugador -> [Obstaculo] -> Palo -> Number
+jugadorSuperaObstaculos unJugador listaObstaculos palo = cantObstaculosSuperados (palo (habilidad unJugador)) listaObstaculos
+
+paloMasUtil :: Jugador -> [Obstaculo] -> Palo
+paloMasUtil unJugador listaObstaculos = maximoSegun (jugadorSuperaObstaculos unJugador listaObstaculos) palos
+
+ninioGanadorTorneo :: [(Jugador,Puntos)] -> (Jugador,Puntos)
+ninioGanadorTorneo listaParticipantes = maximoSegun (snd) listaParticipantes
+
+listaDeNoGanadores :: [(Jugador,Puntos)] -> [(Jugador,Puntos)]
+listaDeNoGanadores listaParticipantes = filter (/= (ninioGanadorTorneo listaParticipantes)) listaParticipantes
+
+listaDePadresPerdedores :: [(Jugador,Puntos)] -> [String]
+listaDePadresPerdedores listaParticipantes = (map padre . map fst) (listaDeNoGanadores listaParticipantes)
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,57 @@
+ module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Corredor = String
+type Puntos = Number    -- o Float si no estás usando el pdepreludat
+type Posicion = (Corredor, Puntos)
+
+data Carrera = Carrera {
+    lugar :: String,
+    fecha :: (Number, Number),
+    posiciones :: [Posicion]
+}
+
+viedma = Carrera "Viedma" (10, 2) [ ("Ardusso", 45), ("Ortelli", 42), ("Werner", 39) ]
+neuquen = Carrera "Neuquén" (3, 3) [ ("Aguirre", 47), ("Urcera", 42), ("Werner", 38.5)]
+concepcionUruguay = Carrera "Concepción del Uruguay" (31, 3) [ ("Benvenuti", 45), ("De Benedictis", 42), ("Ardusso", 38.5)]
+sanLuis = Carrera "San Luis" (14, 4) [ ("Mangoni", 45), ("Urcera", 44), ("Mazzacane", 39)]
+rosario = Carrera "Rosario" (5, 5) [ ("Rossi", 47), ("Ponce de Leon", 42), ("Ledesma", 38.5) ]
+
+corredores :: [Corredor]
+corredores = ["Urcera","Ardusso","Werner","Aguirre","Rossi","Benvenuti","Mangoni","Ortelli","De Benedictis","Ponce de Leon","Mazzacane","Ledesma"]
+
+carreras :: [Carrera]
+carreras = [
+    viedma,
+    neuquen,
+    concepcionUruguay,
+    sanLuis,
+    rosario
+    ]
+
+corrioEnCarrera :: Posicion -> Carrera -> Bool
+corrioEnCarrera unCorredor unaCarrera = any (((== (fst unCorredor)).fst)) (posiciones unaCarrera) 
+
+obtenerCorredor :: Posicion -> Carrera -> Posicion
+obtenerCorredor unCorredor unaCarrera = (head . filter (((== (fst unCorredor)).fst)) . posiciones) unaCarrera
+
+sumarPuntos :: Posicion -> Carrera -> Number
+sumarPuntos unCorredor unaCarrera = ((+(snd unCorredor)). snd . obtenerCorredor unCorredor) unaCarrera
+
+puntosObtenidos :: Posicion -> Carrera -> Posicion
+puntosObtenidos unCorredor unaCarrera | corrioEnCarrera unCorredor unaCarrera = (fst unCorredor, sumarPuntos unCorredor unaCarrera)
+                                      | otherwise = unCorredor
+
+correCarreras :: [Carrera] -> Corredor -> Posicion
+correCarreras listaCarreras unCorredor = foldl (puntosObtenidos) (unCorredor,0) listaCarreras
+
+corredoresDpsCarreras :: [Corredor] -> [Carrera] -> [Posicion]
+corredoresDpsCarreras listaCorredores listaCarreras = map (correCarreras listaCarreras) listaCorredores
+
+sortBy f [a] = [a]
+sortBy f (x:y:ys) | f x > f y = (x: sortBy f (y:ys))
+                  | otherwise = (y: sortBy f (x:ys))
+
+tablaPosiciones :: [Posicion]
+tablaPosiciones = sortBy snd (corredoresDpsCarreras corredores carreras)

@@ -1,0 +1,67 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+import Prelude (Float)
+
+type Ataque = (Peleador -> Peleador)
+
+data Peleador = Peleador {
+puntosVida :: Number,
+resistencia :: Number,
+ataques :: [Ataque]
+} deriving (Show,Eq)
+
+data PartesCuerpo = Pecho | Cara | Nuca deriving (Show,Eq)
+
+estaMuerto :: Peleador -> Bool
+estaMuerto unPeleador = ((<1).puntosVida) unPeleador
+
+esHabil :: Peleador -> Bool
+esHabil unPeleador = ((>10).length.ataques) unPeleador
+
+modificarVida :: Number -> Peleador -> Peleador
+modificarVida unaCantidad unPeleador = unPeleador {puntosVida = (puntosVida unPeleador) - unaCantidad}
+
+golpe :: Number -> Ataque
+golpe unaIntensidad unPeleador = modificarVida (unaIntensidad / (resistencia unPeleador)) unPeleador
+
+toqueDeMuerto :: Ataque
+toqueDeMuerto unPeleador = modificarVida (puntosVida unPeleador) unPeleador
+
+patadaEnElPecho :: Peleador -> Peleador
+patadaEnElPecho unPeleador | estaMuerto unPeleador = modificarVida (-1) unPeleador
+                           | otherwise = modificarVida 10 unPeleador
+
+patada :: PartesCuerpo -> Ataque
+patada unaParte unPeleador | unaParte == Pecho = patadaEnElPecho unPeleador
+                           | unaParte == Cara = modificarVida (((/2).puntosVida) unPeleador) unPeleador
+                           | unaParte == Nuca = unPeleador { ataques = (drop 1 . ataques) unPeleador}
+                           | otherwise = unPeleador
+
+danioCausado :: Peleador -> Ataque -> Number
+danioCausado unPeleador unAtaque = (puntosVida unPeleador) - (puntosVida . unAtaque $ unPeleador)
+
+maximoSegun _ [a] = a
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                       | otherwise = maximoSegun f (y:ys)
+
+mejorAtaqueContra :: Peleador -> Peleador -> Ataque
+mejorAtaqueContra unPeleador unEnemigo = maximoSegun (danioCausado unEnemigo) (ataques unPeleador)
+
+bruceLee :: Peleador
+bruceLee = Peleador 200 25 [toqueDeMuerto,golpe 500,(patada Cara . patada Cara . patada Cara)]
+
+terrible :: Ataque -> [Peleador] -> Bool
+terrible unAtaque listaEnemigos = div ((length . filter (not.estaMuerto)) listaEnemigos) 2 > (length . filter (not.estaMuerto) . map unAtaque) listaEnemigos
+
+peligroso :: Peleador -> [Peleador] -> Bool
+peligroso unPeleador listaEnemigos = (all (flip (terrible) (filter esHabil listaEnemigos)) . ataques) unPeleador
+
+invencible :: Peleador -> [Peleador] -> Bool
+invencible unPeleador listaEnemigos = puntosVida unPeleador == (puntosVida . foldl (flip ($)) unPeleador . map (flip (mejorAtaqueContra) unPeleador)) listaEnemigos
+
+
+
+
+
+

@@ -1,0 +1,87 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Ayudante = (String,[(String,Number)])
+
+nombre :: Ayudante -> String
+nombre unAyudante = fst unAyudante
+
+listaConceptos :: Ayudante -> [(String,Number)]
+listaConceptos unAyudante = snd unAyudante 
+
+
+
+
+ayudantes =[ ("martina",[("ordenSuperior",6),("expresionLambda",7),("listasPorComprension",8)]),("juan", [("aplicacionParcial",9), ("listasPorComprension",6), ("sinonimosDeTipos",7)]),("sharon", [("currificación",5), ("aplicacionParcial",8), ("tuplas",9), ("ordenSuperior",8)])]
+
+martina = ("martina",[("ordenSuperior",6),("expresionLambda",7),("listasPorComprension",8)])
+
+sabeAlgoNivel :: Number -> Ayudante -> Bool
+sabeAlgoNivel unNivel unAyudante = (any (== unNivel) . map snd . listaConceptos) unAyudante
+
+cuantosSabenNivel :: Number -> [Ayudante] -> Number
+cuantosSabenNivel unNivel listaAyudantes = (length . filter (sabeAlgoNivel unNivel)) listaAyudantes
+
+estaOrdenada [a] = True
+estaOrdenada (x:y:ys) | x < y = estaOrdenada (y:ys)
+                      | otherwise = False
+
+fueAprendiendo :: Ayudante -> Bool
+fueAprendiendo unAyudante = estaOrdenada (map snd . listaConceptos $ unAyudante)
+
+type Juez = Ayudante -> Number
+
+sumatoriaDeNiveles :: Ayudante -> Number
+sumatoriaDeNiveles unAyudante = (sum . map snd . listaConceptos) unAyudante
+
+conceptosConocidos :: Ayudante -> Number
+conceptosConocidos unAyudante = (length . listaConceptos) unAyudante
+
+promedio unTotal unaCantidad = unTotal / unaCantidad
+
+franco :: Juez
+franco unAyudante = promedio (sumatoriaDeNiveles unAyudante) (conceptosConocidos unAyudante)
+
+sabeOrdenSuperior :: Ayudante -> Bool
+sabeOrdenSuperior unAyudante = (elem "ordenSuperior" . map fst . listaConceptos) unAyudante
+
+maithe :: Juez
+maithe unAyudante | sabeOrdenSuperior unAyudante = 9
+                  | otherwise = 5
+
+hernan :: Juez
+hernan unAyudante = conceptosConocidos unAyudante
+
+puntajeJuez :: Juez -> Juez
+puntajeJuez unJuez unAyudante = unJuez unAyudante
+
+type Jurado = [Juez]
+
+puntajes :: [Juez] -> Ayudante -> [Number]
+puntajes unJurado unAyudante = map (flip puntajeJuez unAyudante) unJurado
+
+puntajeTotal :: [Juez] -> Ayudante -> Number
+puntajeTotal unJurado unAyudante = (sum . puntajes unJurado) unAyudante
+
+esBuenAyudante :: [Juez] -> Ayudante -> Bool
+esBuenAyudante unJurado unAyudante = (all (7>=) . puntajes unJurado) unAyudante
+
+maximoSegun _ [a] = a
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                       | otherwise = maximoSegun f (y:ys)
+
+cuantosTemasSabenNivel :: Number -> Ayudante -> Number
+cuantosTemasSabenNivel unNumero unAyudante = (length . filter ((>unNumero)) . map snd . listaConceptos) unAyudante
+
+elQueMejorConoceTemas :: [Ayudante] -> Ayudante
+elQueMejorConoceTemas listaAyudantes = maximoSegun (cuantosTemasSabenNivel 7) listaAyudantes
+
+elMejorSegunJuez :: Juez -> [Ayudante] -> Ayudante
+elMejorSegunJuez unJuez listaAyudantes = maximoSegun unJuez listaAyudantes
+
+buscarTema unTema unAyudante = (head . filter ((==unTema).fst) .  listaConceptos) unAyudante
+
+conocimientoUnTema :: String -> Ayudante -> Number
+conocimientoUnTema unTema unAyudante | elem unTema (map fst . listaConceptos $ unAyudante) = (snd . buscarTema unTema) $ unAyudante
+                                     | otherwise = 0

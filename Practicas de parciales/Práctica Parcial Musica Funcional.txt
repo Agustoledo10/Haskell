@@ -1,0 +1,97 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Cancion = [Nota]
+data Nota = Nota {
+tono :: Number, -- Frecuencia medida en Hz
+volumen :: Number, -- Volumen de reproducción medido en Db
+duracion :: Number -- Tiempo de reproducción medido en segundos
+} deriving (Eq, Show)
+
+cambiarVolumen :: (Number -> Number) -> Nota -> Nota
+-- Dada una función transformación y una nota retorna una copia de la
+-- nota con el volumen igual al resultado de aplicar la transformación a
+-- su volumen actual.
+cambiarVolumen delta nota = nota { volumen = delta (volumen nota) }
+cambiarTono :: (Number -> Number) -> Nota -> Nota
+-- Dada una función transformación y una nota retorna una copia de la
+-- nota con el tono igual al resultado de aplicar la transformación a
+-- su tono actual.
+cambiarTono delta nota = nota { tono = delta (tono nota) }
+cambiarDuracion :: (Number -> Number) -> Nota -> Nota
+-- Dada una función transformación y una nota retorna una copia de la
+-- nota con la duración igual al resultado de aplicar la transformación a
+-- su duración actual.
+cambiarDuracion delta nota = nota { duracion = delta (duracion nota) }
+promedio :: [Number] -> Number
+-- Dada una lista de números retorna el valor promedio
+promedio lista = sum lista / (length lista)
+
+frecuenciaNecesaria :: Number -> Bool
+frecuenciaNecesaria unTono = (>20) unTono && (<20000) unTono
+
+esAudible :: Nota -> Bool
+esAudible unaNota = ((>10).volumen) unaNota && (frecuenciaNecesaria . tono) unaNota 
+
+esMolesta :: Nota -> Bool
+esMolesta unaNota | esAudible unaNota && ((<250) . tono) unaNota = ((>85).volumen) unaNota
+                  | esAudible unaNota && ((>= 250) . tono) unaNota = ((>55).volumen) unaNota
+                  | otherwise = False
+
+silencioTotal :: Cancion -> Number
+silencioTotal unaCancion = (sum . map duracion . filter (not . esAudible)) unaCancion
+
+duracionMayorA :: Number -> Nota -> Bool
+duracionMayorA unaDuracion unaNota = unaDuracion < (duracion unaNota)
+
+sinInterrupciones :: Cancion -> Bool
+sinInterrupciones unaCancion = (all (esAudible) . filter (duracionMayorA 0.1)) unaCancion
+
+maximoSegun _ [a] = a
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                       | otherwise = maximoSegun f (y:ys)
+
+peorMomento :: Cancion -> Number
+peorMomento unaCancion = (volumen . maximoSegun volumen . filter (esMolesta)) unaCancion
+
+type Filtro = Cancion -> Cancion
+
+transponer :: Number -> Filtro
+transponer unEscalar unaCancion = map (cambiarTono (*unEscalar)) unaCancion
+
+acotarVolumen :: Number -> Number -> Filtro
+acotarVolumen volMax volMin unaCancion =  map (cambiarVolumen (min volMax) . cambiarVolumen (max volMin))  unaCancion
+
+setearEnPromedio :: Cancion -> Number -> Number
+setearEnPromedio unaCancion unVolumen = promedio (map duracion unaCancion)
+
+normalizar :: Filtro
+normalizar unaCancion = map (cambiarVolumen (setearEnPromedio unaCancion)) unaCancion
+
+aplicarFiltro :: Filtro -> Filtro
+aplicarFiltro unFiltro unaCancion = unFiltro unaCancion
+
+f g [] y z = g y z
+f g (x : xs) y z = g (x y) z || f g xs y z
+
+
+-- f :: (a -> b -> Bool) -> [(a -> a)] -> a -> b -> Bool
+
+infringeCopyright :: [Filtro] -> Cancion -> Cancion -> Bool
+infringeCopyright listaFiltros cancionOG cancionSUS = cancionOG == cancionSUS || f (==) listaFiltros cancionOG cancionSUS
+
+-- compararSegunAlgunaFuncion funcionComparativa listaFunciones elementoATranformar elementoAComparar
+
+tunear :: [Filtro] -> Filtro
+tunear listaFiltros unaCancion = (normalizar . foldl (flip aplicarFiltro) unaCancion) listaFiltros
+
+
+
+
+
+
+
+
+
+

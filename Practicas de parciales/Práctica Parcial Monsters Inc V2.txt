@@ -1,0 +1,118 @@
+ module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Grito = (String,Number,Bool)
+
+onomatopeya :: Grito -> String
+onomatopeya (o,_,_) = o
+
+intensidad :: Grito -> Number
+intensidad (_,i,_) = i
+
+mojoLaCama :: Grito -> Bool
+mojoLaCama (_,_,m) = m
+
+cuadrado :: Number -> Number
+cuadrado unNumero = unNumero * unNumero
+
+energiaDeGrito :: Grito -> Number
+energiaDeGrito unGrito | mojoLaCama unGrito = (cuadrado . intensidad) unGrito
+                       | otherwise = ((*3).length.onomatopeya) unGrito
+
+type Chico = (String,Number,Number)
+
+nombre :: Chico -> String
+nombre (n,_,_) = n
+
+edad :: Chico -> Number
+edad (_,e,_) = e
+
+altura :: Chico -> Number
+altura (_,_,a ) = a
+
+type Monstruo = Chico -> Grito
+
+monstruoTrabaja :: Monstruo -> Monstruo
+monstruoTrabaja unMonstruo unChico = unMonstruo unChico
+
+gritoSullivan :: Chico -> String
+gritoSullivan unChico = take ((length.nombre) unChico) (cycle "A") ++ "GH"
+
+intensidadSullivan :: Chico -> Number
+intensidadSullivan unChico = 20 / (edad unChico)
+
+haceMojarSullivan :: Chico -> Bool
+haceMojarSullivan unChico = ((<3).edad) unChico
+
+sullivan :: Monstruo
+sullivan unChico = (gritoSullivan unChico,intensidadSullivan unChico,haceMojarSullivan unChico)
+
+vocales :: [Char]
+vocales = ['a','e','i','o','u']
+
+esVocal :: Char -> Bool
+esVocal unaLetra = elem unaLetra vocales
+
+intensidadRandall :: Chico -> Number
+intensidadRandall unChico = (length.filter esVocal.nombre) unChico
+
+haceMojarRandall :: Chico -> Bool
+haceMojarRandall unChico = ((>= 0.8).altura) unChico && ((<= 1.2).altura) unChico
+
+randall :: Monstruo
+randall unChico = ("Mamadera!",intensidadRandall unChico,haceMojarRandall unChico)
+
+abc = ['a'..'z']
+
+chuck :: Monstruo
+chuck unChico = (abc,1000,True)
+
+osito :: Monstruo
+osito unChico = ("uf",(edad unChico),False)
+
+pam :: [(a->b)] -> a -> [b]
+pam listaFunciones unValor = map (flip ($) unValor) listaFunciones
+
+kevin = ("kevin",2,1.1)
+
+gritosEquipo :: [Monstruo] -> Chico -> [Grito]
+gritosEquipo equipoMonstruous unChico = pam equipoMonstruous unChico
+
+produccionEnergeticaGritos :: [Monstruo] -> [Chico] -> Number
+produccionEnergeticaGritos equipoMonstruous unCampamento = (sum . map energiaDeGrito . concat . map (gritosEquipo equipoMonstruous)) unCampamento
+
+type Risa = (Number,Number)
+
+duracionRisa :: Risa -> Number
+duracionRisa = fst
+
+intensidadRisa :: Risa -> Number
+intensidadRisa = snd
+
+energiaRisa :: Risa -> Number
+energiaRisa unaRisa = (duracionRisa unaRisa)^(intensidadRisa unaRisa)
+
+type Comediante = Chico -> Risa
+
+trabajaComediante :: Comediante -> Comediante
+trabajaComediante unComediante unChico = unComediante unChico
+
+risasEquipo :: [Comediante] -> Chico -> [Risa]
+risasEquipo equipoComediantes unChico = pam equipoComediantes unChico
+
+produccionEnergeticaRisas :: [Comediante] -> [Chico] -> Number
+produccionEnergeticaRisas equipoComediantes unCampamento = (sum . map energiaRisa . concat . map (risasEquipo equipoComediantes)) unCampamento
+
+produccionEnergetica :: (a -> Number) -> [Chico -> a] -> [Chico] -> Number
+produccionEnergetica funcionEnergia unEquipo unCampamento = (sum . map funcionEnergia . concat . map (pam unEquipo)) unCampamento
+
+
+
+
+
+
+
+
+
+

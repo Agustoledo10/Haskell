@@ -1,0 +1,65 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Recursos = String 
+
+data Pais = Pais {
+ingresoPerCapita :: Number,
+activosPublico :: Number,
+activosPrivado :: Number,
+recursosNaturales :: [String],
+deuda :: Number
+} deriving (Show,Eq)
+
+
+namibia = Pais 4140 400000 650000 ["mineria","ecoturismo"] 50000000
+
+type Estrategia = Pais -> Pais
+
+seEndeuda deudaOg deudaNueva = deudaOg + deudaNueva + (div deudaNueva 2) 
+
+prestamoFMI :: Number -> Estrategia
+prestamoFMI unaDeuda unPais = unPais {deuda = seEndeuda (deuda unPais) unaDeuda}
+
+
+reduccionPorcentual numero porcentaje = numero - (ceiling.(/100).(*porcentaje)) numero
+
+
+reducirSectorPublico unPais | (activosPublico unPais) > 100 = reduccionPorcentual (ingresoPerCapita unPais) 20 
+                           | otherwise = reduccionPorcentual (ingresoPerCapita unPais) 15
+
+reducirGastoPublico :: Number -> Estrategia 
+reducirGastoPublico puestos unPais = unPais{activosPublico = (activosPublico unPais) - puestos, ingresoPerCapita = reducirSectorPublico unPais}
+
+asignacionEmpresa recursosPais recursoEmpresa = filter ((/=) recursoEmpresa) recursosPais
+
+empresaFMI :: String -> Estrategia
+empresaFMI recursoNatural unPais = unPais{deuda = (deuda unPais) - 2000000, recursosNaturales = asignacionEmpresa (recursosNaturales unPais) recursoNatural} 
+
+reducirActivosPublico numero unPais = unPais {activosPublico = (activosPublico unPais) - numero }
+
+poblacionActiva unPais = (activosPrivado unPais) + (activosPublico unPais)
+
+mitadPBI unPais = ((*(ingresoPerCapita unPais)).poblacionActiva) unPais
+
+prestamoMitadPBI unPais = unPais{deuda = (deuda unPais) + mitadPBI unPais}
+
+blindaje  = prestamoMitadPBI.reducirActivosPublico 500
+
+receta = [empresaFMI "Minería",prestamoFMI 200000000]
+
+aplicarEstrategia :: Estrategia -> Estrategia 
+aplicarEstrategia estrategia unPais = estrategia unPais 
+
+aplicarReceta unPais receta = foldl (flip aplicarEstrategia) unPais receta  
+
+paisesZafan paises =(filter (elem "Petroleo"). map recursosNaturales) paises
+
+deudaFMI paises = (sum.map deuda) paises
+
+
+
+
+
+

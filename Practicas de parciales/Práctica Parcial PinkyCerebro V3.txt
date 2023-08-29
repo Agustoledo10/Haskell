@@ -1,0 +1,98 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Animal = Animal {
+iq :: Number,
+especie :: String,
+habilidades :: [String]
+} deriving (Show,Eq)
+
+ej1 = Animal 2 "paloma" ["molestar"]
+
+type Transformacion = Animal -> Animal
+
+transformarAnimalLaboratorio :: Transformacion -> Transformacion
+transformarAnimalLaboratorio unaTransformacion unAnimal = unaTransformacion unAnimal
+
+inteligenciaSuperior :: Number ->  Transformacion
+inteligenciaSuperior unaCantidad unAnimal = unAnimal { iq = (iq unAnimal) + unaCantidad}
+
+pinkificar :: Transformacion
+pinkificar unAnimal = unAnimal { habilidades = []}
+
+otorgarHabilidades :: [String] -> Animal -> Animal 
+otorgarHabilidades habilidadesNuevas unAnimal = unAnimal { habilidades = (habilidades unAnimal) ++ habilidadesNuevas}
+
+especieEs :: String -> Animal -> Bool
+especieEs unaEspecie unAnimal = ((== unaEspecie) . especie) unAnimal
+
+iqMayorA :: Number -> Animal -> Bool
+iqMayorA unIq unAnimal = ((>unIq) . iq) unAnimal
+
+superpoderes :: Transformacion
+superpoderes unAnimal | especieEs "elefante" unAnimal = otorgarHabilidades ["no tenerle miedo a los ratones"] unAnimal
+                      | especieEs "raton" unAnimal && iqMayorA 100 unAnimal = otorgarHabilidades ["hablar"] unAnimal
+                      | otherwise = unAnimal
+
+type Criterio = Animal -> Bool
+
+tieneHabilidad :: String -> Animal -> Bool
+tieneHabilidad unaHabilidad unAnimal = (any (== unaHabilidad) . habilidades) unAnimal
+
+esAntropomorfico :: Criterio
+esAntropomorfico unAnimal = iqMayorA 60 unAnimal && tieneHabilidad "hablar" unAnimal
+
+esVocal :: Char -> Bool
+esVocal unaLetra = elem unaLetra "aeiouáéíóú"
+
+esPalabraPinkiesca :: String -> Bool
+esPalabraPinkiesca unaPalabra = any esVocal unaPalabra && ((<=4) . length) unaPalabra
+
+esHabilidadPinkiesca :: [String] -> Bool
+esHabilidadPinkiesca conjuntoPalabras = ((== "hacer") . head) conjuntoPalabras && (esPalabraPinkiesca . last) conjuntoPalabras 
+
+pinkiesco :: String -> Bool
+pinkiesco unaHabilidad = (esHabilidadPinkiesca . words) unaHabilidad
+
+noTanCuerdo :: Criterio
+noTanCuerdo unAnimal = ((>2) . length . filter pinkiesco . habilidades) unAnimal
+
+data Experimento = Experimento{
+criterioExito :: (Animal -> Bool),
+serieTransformaciones :: [Transformacion]
+} deriving (Show,Eq)
+
+experimentoExitoso :: Experimento -> Animal -> Bool
+experimentoExitoso unExperimento unAnimal = ((criterioExito unExperimento) . foldl (flip ($)) unAnimal . serieTransformaciones) unExperimento 
+
+ratonEj = Animal 17 "raton" ["destruenglonir el mundo","hacer planes desalmados"]
+
+expEj = Experimento esAntropomorfico [pinkificar, inteligenciaSuperior 10,superpoderes]
+
+ejConsulta = experimentoExitoso expEj ratonEj
+
+someterAExperimento :: Experimento -> Animal -> Animal
+someterAExperimento unExperimento unAnimal = (foldl (flip ($)) unAnimal . serieTransformaciones) unExperimento 
+
+desarollarReportes :: [Animal] -> [String] -> Experimento -> (Animal -> Bool) -> (Animal -> a) -> [a]
+desarollarReportes listaAnimales listaHabilidades unExperimento criterioFiltrado criterioSalida = (map criterioSalida . filter criterioFiltrado . map (someterAExperimento unExperimento)) listaAnimales 
+
+tieneAlguno :: [String] -> Animal -> Bool
+tieneAlguno listaHabilidades unAnimal = (any (flip (elem) listaHabilidades) . habilidades) unAnimal
+
+tieneTodos :: [String] -> Animal -> Bool
+tieneTodos listaHabilidades unAnimal = (all (flip (elem) listaHabilidades) . habilidades) unAnimal
+
+reporte1 :: [Animal] -> [String] -> Experimento -> [Number]
+reporte1 listaAnimales listaHabilidades unExperimento = desarollarReportes listaAnimales listaHabilidades unExperimento (tieneAlguno listaHabilidades) iq
+
+reporte2 :: [Animal] -> [String] -> Experimento -> [String]
+reporte2 listaAnimales listaHabilidades unExperimento = desarollarReportes listaAnimales listaHabilidades unExperimento (tieneTodos listaHabilidades) especie
+
+reporte3 :: [Animal] -> [String] -> Experimento -> [Number]
+reporte3 listaAnimales listaHabilidades unExperimento = desarollarReportes listaAnimales listaHabilidades unExperimento ((not.tieneAlguno listaHabilidades)) (length . habilidades)
+
+
+
+ 

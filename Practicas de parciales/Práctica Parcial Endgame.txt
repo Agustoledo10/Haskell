@@ -1,0 +1,117 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Arma = Superheroe -> Superheroe
+
+data Villano = Villano {
+nombreVillano :: String,
+planetaOgVillano :: String,
+armaVillano :: Arma
+} deriving (Show,Eq)
+
+type Artefacto = (String,Number)
+
+data Superheroe = Superheroe{
+nombreHeroe :: String,
+vida :: Number,
+planetaOrigen :: String,
+artefactoPredilecto :: Artefacto,
+villanoEnemigo :: Villano
+} deriving (Show,Eq)
+
+porcentaje :: Number -> Number -> Number
+porcentaje unPorcentaje unTotal = ((/100).(*unPorcentaje)) unTotal
+
+modificarVida :: (Number -> Number) -> Superheroe -> Superheroe
+modificarVida unaModificacion unSuperheroe = unSuperheroe{vida = unaModificacion (vida unSuperheroe)}
+
+guantelenteDelInfinito :: Arma
+guantelenteDelInfinito unSuperheroe = modificarVida (flip (-) ((porcentaje 80 . vida) unSuperheroe)) unSuperheroe
+
+romperArtefacto :: Superheroe -> Superheroe
+romperArtefacto unSuperheroe = unSuperheroe {artefactoPredilecto =  (\(a,b) -> (a ++ " machacado",b+30)) (artefactoPredilecto unSuperheroe)}
+
+esOriundoDe :: String -> Superheroe -> Bool
+esOriundoDe unPlaneta unSuperheroe = ((==unPlaneta).planetaOrigen) unSuperheroe
+
+cetro :: Number -> Arma
+cetro unPorcentaje unSuperheroe | (esOriundoDe "La Tierra") unSuperheroe = (romperArtefacto . modificarVida (flip (-) ((porcentaje unPorcentaje . vida) unSuperheroe))) unSuperheroe
+                                | otherwise = modificarVida (flip (-) ((porcentaje unPorcentaje . vida) unSuperheroe)) unSuperheroe
+
+thanos :: Villano
+thanos = Villano "Thanos" "Titan" guantelenteDelInfinito
+
+loki ::  Villano
+loki = Villano "Loki Laufeyson" "Jotunheim" (cetro 20)
+
+ironMan :: Superheroe
+ironMan = Superheroe "Tony Shark" 100 "La Tierra" ("Traje",12) thanos
+
+thor :: Superheroe
+thor = Superheroe "Thor" 300 "Asgard" ("Stormbreaker",0) loki
+
+esSuEnemigo :: Villano -> Superheroe -> Bool
+esSuEnemigo unVillano unSuperheroe = nombreVillano unVillano == (nombreVillano.villanoEnemigo) unSuperheroe
+
+sonAntagonistas :: Superheroe -> Villano -> Bool
+sonAntagonistas unSuperheroe unVillano = (planetaOgVillano unVillano) == (planetaOrigen unSuperheroe) || esSuEnemigo unVillano unSuperheroe 
+
+ataqueVillano :: Superheroe -> Villano -> Superheroe
+ataqueVillano unSuperheroe unVillano | esSuEnemigo unVillano unSuperheroe = unSuperheroe
+                                     | otherwise = (armaVillano unVillano) unSuperheroe
+
+seEnfrentaVillanos :: Superheroe -> [Villano] -> Superheroe
+seEnfrentaVillanos unSuperheroe listaVillanos = foldl (ataqueVillano) unSuperheroe listaVillanos
+
+reconocimientoSuper :: Superheroe -> Superheroe
+reconocimientoSuper unSuperheroe = unSuperheroe {nombreHeroe = "Super " ++ (nombreHeroe unSuperheroe)}
+
+superVivientesAtaque :: [Superheroe] -> Villano -> [Superheroe]
+superVivientesAtaque listaSuperheroe unVillano = (map reconocimientoSuper . filter ((>=50).vida) . map (flip (ataqueVillano) unVillano)) listaSuperheroe
+
+recuperarNombre :: [String] -> String
+recuperarNombre [a] = a
+recuperarNombre (x:xs) = x ++ " " ++ recuperarNombre xs
+
+desmachacar :: String -> String
+desmachacar unArtefacto = (recuperarNombre . reverse. drop 1 . reverse . words) unArtefacto
+
+nombreArtefacto :: Artefacto -> String
+nombreArtefacto = fst
+
+estaMachacado :: String -> Bool
+estaMachacado unArtefacto = elem "machacado" (words  unArtefacto)
+
+arregloArtefacto :: Superheroe -> Superheroe
+arregloArtefacto unSuperheroe | (estaMachacado . nombreArtefacto . artefactoPredilecto) unSuperheroe  = unSuperheroe {artefactoPredilecto = (desmachacar . fst . artefactoPredilecto $ unSuperheroe,0)}
+                              | otherwise = unSuperheroe
+
+
+descanso :: Superheroe -> Superheroe
+descanso unSuperheroe = (arregloArtefacto . modificarVida (+30)) unSuperheroe
+
+hogarDulceHogar :: [Superheroe] -> [Superheroe]
+hogarDulceHogar listaSuperheroe = ( map arregloArtefacto . map descanso . superVivientesAtaque listaSuperheroe) thanos
+
+esDebilAnte :: Villano -> Superheroe -> Bool
+esDebilAnte unVillano unSuperheroe = sonAntagonistas unSuperheroe unVillano && (not . estaMachacado . nombreArtefacto . artefactoPredilecto) unSuperheroe
+
+villanoDebilAnte :: Villano -> [Superheroe] -> Bool
+villanoDebilAnte unVillano listaSuperheroe = all (esDebilAnte unVillano) listaSuperheroe
+
+drStrange :: Superheroe
+drStrange  = Superheroe "Stephen Strange" 60 "La Tierra" ("capa de levitacion",0) thanos
+
+muchosStephen :: [String]
+muchosStephen = zipWith (++) (repeat "Stephen Strange ") (map show [1..])
+
+cambiarNombre :: Superheroe -> String -> Superheroe
+cambiarNombre unSuperheroe unNombre = unSuperheroe {nombreHeroe = unNombre}
+
+clonesStrange :: [Superheroe]
+clonesStrange = zipWith (cambiarNombre) (repeat drStrange) muchosStephen
+
+-- no podemos obtener los nombres de quienes sobrevivieron a thanos pues la funcion se mantiene aplicando la primera funcion de aplicar el ataque del villano a la lista de superheroes, sin obtener nunca la respuesta correspondiente, diverge
+
+-- lo podemos saber si efectivamente en algun lugar de la lista se encuentran 4 villanos y superheroes que son antagonista, pues "cortan" la recursion. Si es falso, el algoritmo no termina

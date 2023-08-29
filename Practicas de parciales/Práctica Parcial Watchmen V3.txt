@@ -1,0 +1,92 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Vigilante = (String,[String],Number)
+
+nombreVigilante :: Vigilante -> String
+nombreVigilante (n,_,_) = n
+
+habilidadesVigilante :: Vigilante -> [String]
+habilidadesVigilante (_,h,_) = h
+
+anioVigilante :: Vigilante -> Number
+anioVigilante (_,_,a) = a
+
+algunosVigilantes :: [Vigilante]
+algunosVigilantes = [ ("El Comediante", ["Fuerza"], 1942), ("Buho Nocturno", ["Lucha", "Ingenierismo"], 1963), ("Rorschach", ["Perseverancia", "Deduccion", "Sigilo"], 1964), ("Espectro de Seda", ["Lucha", "Sigilo", "Fuerza"], 1962), ("Ozimandias", ["Inteligencia", "Más Inteligencia Aún"], 1968), ("Buho Nocturno", ["Lucha", "Inteligencia", "Fuerza"], 1939), ("Espectro de Seda", ["Lucha", "Sigilo"], 1940)]
+
+type Evento = [Vigilante] -> [Vigilante]
+
+muere :: String -> Evento
+muere unVigilante listaVigilantes = filter ((/= unVigilante).nombreVigilante) listaVigilantes
+
+destruccionNiuShork :: Evento
+destruccionNiuShork listaVigilantes = (muere "Rorschach" . muere "Dr Manhattan") listaVigilantes
+
+agentesDelGobierno :: [(String,String)]
+agentesDelGobierno = [("Jack Bauer","24"), ("El Comediante", "Watchmen"), ("Dr. Manhattan", "Watchmen"), ("Liam Neeson", "Taken")]
+
+agentesCinistas :: Vigilante -> Vigilante
+agentesCinistas unVigilante | (elem (nombreVigilante unVigilante) . map fst) agentesDelGobierno = (nombreVigilante unVigilante, (habilidadesVigilante unVigilante) ++ ["Cinismo"],anioVigilante unVigilante)
+                            | otherwise = unVigilante
+
+guerraDeVietnam :: Evento
+guerraDeVietnam listaVigilantes = map agentesCinistas listaVigilantes
+
+drManhattan :: Number -> Vigilante
+drManhattan unAnio = ("Dr Manhattan",["manipulacion de la materia a nivel atomico"],unAnio)
+
+accidenteLaboratorio :: Number -> Evento
+accidenteLaboratorio unAnio listaVigilantes = listaVigilantes ++ [drManhattan unAnio]
+
+esSucesor :: Vigilante -> Vigilante -> Bool
+esSucesor unVigiliante candidatoASucesor = ((nombreVigilante unVigiliante) == (nombreVigilante candidatoASucesor)) && (anioVigilante unVigiliante) < (anioVigilante candidatoASucesor)
+
+tieneSucesor :: [Vigilante] -> Vigilante -> Bool
+tieneSucesor listaVigilantes unVigilante = any (esSucesor unVigilante) listaVigilantes
+
+actaDeKeene :: Evento
+actaDeKeene listaVigilantes = filter (tieneSucesor listaVigilantes) listaVigilantes
+
+type Historia = [Evento]
+
+desarrolloHistoria :: Historia -> [Vigilante] -> [Vigilante]
+desarrolloHistoria listaEventos listaVigilantes = foldl (flip ($)) listaVigilantes listaEventos
+
+historiaEj :: [Vigilante]
+historiaEj = desarrolloHistoria [actaDeKeene,accidenteLaboratorio 2959,guerraDeVietnam,destruccionNiuShork] algunosVigilantes
+
+maximoSegun :: Ord b => (a -> b) -> [a] -> a
+maximoSegun _ [a] = a
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                       | otherwise = maximoSegun f (y:ys)
+
+heroeBuscado :: (Vigilante -> a) -> (Vigilante -> Number) -> [Vigilante] -> Evento -> a
+heroeBuscado criterioSalida criterioBusqueda listaVigilantes unEvento = (criterioSalida . maximoSegun criterioBusqueda . unEvento) listaVigilantes
+
+nombreDelSalvador ::[Vigilante] -> String
+nombreDelSalvador listaVigilantes = heroeBuscado nombreVigilante (length.habilidadesVigilante) listaVigilantes destruccionNiuShork
+
+elElegido :: [Vigilante] -> String
+elElegido listaVigilantes = heroeBuscado (head . habilidadesVigilante) (length.nombreVigilante) listaVigilantes guerraDeVietnam
+
+elPatriarca :: [Vigilante] -> Number
+elPatriarca listaVigilantes= heroeBuscado ((-) 2022 . anioVigilante) (negate.anioVigilante) listaVigilantes actaDeKeene
+
+{--nombreDelSalvador :: [Vigilante] -> String
+nombreDelSalvador listaVigilantes = (nombreVigilante . maximoSegun (length.habilidadesVigilante) . destruccionNiuShork) listaVigilantes
+
+elElegido :: [Vigilante] -> String
+elElegido listaVigilantes = (head . habilidadesVigilante . maximoSegun (length.nombreVigilante) . guerraDeVietnam) listaVigilantes
+
+elPatriarca :: [Vigilante] -> Number
+elPatriarca listaVigilantes = ((-) 2022 . anioVigilante . maximoSegun (negate.anioVigilante) . actaDeKeene) listaVigilantes --}
+
+
+
+
+
+
+
+ 

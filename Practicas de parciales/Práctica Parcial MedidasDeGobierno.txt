@@ -1,0 +1,103 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Bien = (String,Number)
+
+data Ciudadano = UnCiudadano {profesion :: String, sueldo :: Number,cantidadDeHijos :: Number, bienes :: [Bien] } deriving (Show,Eq)
+
+homero = UnCiudadano "SeguridadNuclear" 9000 3 [("casa",50000), ("deuda",-70000)]
+frink = UnCiudadano "Profesor" 12000 1 []
+krabappel = UnCiudadano "Profesor" 12000 0 [("casa",35000)]
+burns = UnCiudadano "Empresario" 300000 1[("empresa",1000000),("empresa",500000),("auto",200000)]
+
+springfield :: Ciudad 
+springfield = [homero, burns, frink, krabappel]
+
+type Ciudad = [Ciudadano]
+
+maximoSegun :: Ord b => (a -> b) -> [a] -> a
+maximoSegun _ [a] = a
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                       | otherwise = maximoSegun f (y:ys)
+
+patrimonio :: Ciudadano -> Number
+patrimonio unCiudadano = (sueldo unCiudadano) + ((sum . map snd . bienes) unCiudadano)
+
+maximoPatrimonio :: Ciudad -> Number
+maximoPatrimonio unaCiudad = (patrimonio . maximoSegun patrimonio) unaCiudad
+
+minimoPatrimonio :: Ciudad -> Number
+minimoPatrimonio unaCiudad = (patrimonio . maximoSegun (negate . patrimonio)) unaCiudad
+
+diferenciaDePatrimonio :: Ciudad -> Number
+diferenciaDePatrimonio unaCiudad = maximoPatrimonio unaCiudad - minimoPatrimonio unaCiudad
+
+esAutoAltaGama :: Bien -> Bool
+esAutoAltaGama unBien = ((== "auto").fst) unBien && ((>100000).snd) unBien
+
+tieneAutoAltaGama :: Ciudadano -> Bool
+tieneAutoAltaGama unCiudadano = (any esAutoAltaGama . bienes) unCiudadano
+
+type Medida = Ciudadano -> Ciudadano
+
+asignacionUniversalHijo :: Medida 
+asignacionUniversalHijo unCiudadano | ((<0) . patrimonio ) unCiudadano = unCiudadano {sueldo = (sueldo unCiudadano) + (1000 * (cantidadDeHijos unCiudadano))}
+                                    | otherwise = unCiudadano
+
+porcentaje :: Number -> Number -> Number
+porcentaje unPorcentaje unTotal = ((/100).(*unPorcentaje)) unTotal 
+
+modificarSueldo :: Number -> Ciudadano -> Ciudadano
+modificarSueldo unaCantidad unCiudadano = unCiudadano {sueldo = (sueldo unCiudadano) + unaCantidad}
+
+impuestoGanancias :: Number -> Medida
+impuestoGanancias sueldoMinimo unCiudadano | sueldoMinimo < (sueldo unCiudadano) = modificarSueldo ((negate . porcentaje 30) ((sueldo unCiudadano) - sueldoMinimo)) unCiudadano
+                                           | otherwise = unCiudadano
+
+precioAuto :: Ciudadano -> Number
+precioAuto unCiudadano = (snd .  head . filter ((=="auto").fst) . bienes) unCiudadano 
+
+impuestoAltaGama :: Medida
+impuestoAltaGama unCiudadano | tieneAutoAltaGama unCiudadano = modificarSueldo ((negate . porcentaje 10) (precioAuto unCiudadano)) unCiudadano
+
+negociarSueldoProfesion :: Number -> String -> Medida
+negociarSueldoProfesion unPorcentaje unaProfesion unCiudadano | unaProfesion == (profesion unCiudadano) = modificarSueldo (porcentaje unPorcentaje (sueldo unCiudadano)) unCiudadano
+                                                              | otherwise = unCiudadano
+
+data Gobierno = Gobierno { 
+aniosGobierno :: [Number] ,
+medidasGobierno ::[ Ciudadano -> Ciudadano ]
+} deriving (Show,Eq)
+
+gobiernoA :: Gobierno
+gobiernoA = Gobierno [1999 .. 2003] [impuestoGanancias 30000,negociarSueldoProfesion 10 "Profesor",negociarSueldoProfesion 40 "Empresario",impuestoAltaGama,asignacionUniversalHijo]
+
+gobiernoB :: Gobierno
+gobiernoB = Gobierno [2004..2008] [impuestoGanancias 40000,negociarSueldoProfesion 30 "Profesor",negociarSueldoProfesion 40 "Camionero"]
+
+gobernarUnAnio :: Gobierno -> Ciudad -> Ciudad
+gobernarUnAnio unGobierno unaCiudad = (foldl (flip (map $)) unaCiudad .  medidasGobierno) unGobierno 
+
+duracionMandato :: Gobierno -> Number
+duracionMandato unGobierno = (last . aniosGobierno) unGobierno - (head . aniosGobierno) unGobierno
+
+gobernarPeriodoCompleto :: Gobierno -> Ciudad -> Ciudad
+gobernarPeriodoCompleto unGobierno unaCiudad = (!!) (iterate (gobernarUnAnio unGobierno) unaCiudad) (duracionMandato unGobierno - 1)
+
+distribuyoRiqueza :: Gobierno -> Ciudad -> Bool
+distribuyoRiqueza unGobierno unaCiudad = diferenciaDePatrimonio unaCiudad > (diferenciaDePatrimonio . gobernarPeriodoCompleto unGobierno) unaCiudad
+
+rosebud = zipWith (\ a b -> (a,b)) (repeat "Rosebud")  [5,10..]
+
+kane :: Ciudadano
+kane = UnCiudadano "Empresario" 100000 0 rosebud
+
+-- gobernarUnAnio gobiernoA [kane] se queda evaluando sin dar resupuesta, dado que evaluara infinitamente en la lista de bienes si hay un auto de alta gama
+-- gobernarUnAnio gobiernoB [kane], en cambio, funciona puesto que se cumple la condicion del impuesto a las ganancias, y la lista infinita que dificulta el funcionamiento de ciertas funciones, no entra en consideracion
+-- f1 :: Num c => c -> (a -> b -> Bool) -> b -> [c] -> [c]
+-- f1 x y z = map (*x) . filter (y z)
+
+f1 x y z = map (*x) . filter (y z)
+
+

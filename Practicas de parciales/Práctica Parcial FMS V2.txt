@@ -1,0 +1,194 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Palabra = String
+type Verso = String
+type Estrofa = [Verso]
+type Artista = String -- Solamente interesa el nombre
+ 
+esVocal :: Char -> Bool
+esVocal = flip elem "aeiou"
+ 
+tieneTilde :: Char -> Bool
+tieneTilde = flip elem "áéíóú"
+ 
+cumplen :: (a -> b) -> (b -> b -> Bool) -> a -> a -> Bool
+cumplen f comp v1 v2 = comp (f v1) (f v2)
+
+palabrasDiferentes :: Palabra -> Palabra -> Bool
+palabrasDiferentes unaPalabra otraPalabra = unaPalabra /= otraPalabra
+
+ultimasNLetras :: Number -> Palabra -> [Char]
+ultimasNLetras unNumero unaPalabra = (reverse . take unNumero . reverse) unaPalabra
+
+esVocalOpciones :: Char -> Bool
+esVocalOpciones unaLetra = esVocal unaLetra || tieneTilde unaLetra
+
+ultimasNVocales :: Number -> Palabra -> [Char]
+ultimasNVocales unNumero unaPalabra = (ultimasNLetras unNumero . filter esVocalOpciones) unaPalabra 
+
+rimaAsonante :: Palabra -> Palabra -> Bool
+rimaAsonante unaPalabra otraPalabra = (ultimasNVocales 2 unaPalabra) == (ultimasNVocales 2 otraPalabra)
+
+rimaConsonante :: Palabra -> Palabra -> Bool
+rimaConsonante unaPalabra otraPalabra = ultimasNLetras 3 unaPalabra == ultimasNLetras 3 otraPalabra
+
+palabrasRiman :: Palabra -> Palabra -> Bool
+palabrasRiman unaPalabra otraPalabra = palabrasDiferentes unaPalabra otraPalabra && (rimaAsonante unaPalabra otraPalabra || rimaConsonante unaPalabra otraPalabra)  
+
+type Conjugacion = [Verso] -> Bool
+
+conjuganVersos :: Conjugacion -> Conjugacion
+conjuganVersos unaConjugacion unParDeVersos = unaConjugacion unParDeVersos
+
+versoNumeroN :: Number -> [Verso] -> Verso
+versoNumeroN unNumero conjuntoVersos = (!!) conjuntoVersos (unNumero - 1)
+
+ultimaPalabraVerso :: Verso -> Palabra
+ultimaPalabraVerso unVerso = (last . words) unVerso
+
+primeraPalabraVerso :: Verso -> Palabra
+primeraPalabraVerso unVerso = (head . words) unVerso
+
+conjugacionRima :: Conjugacion
+conjugacionRima unParDeVersos = palabrasRiman (ultimaPalabraVerso . versoNumeroN 1 $ unParDeVersos) (ultimaPalabraVerso . versoNumeroN 2 $ unParDeVersos) 
+
+conjugacionAnadiplosis :: Conjugacion
+conjugacionAnadiplosis unParDeVersos = (ultimaPalabraVerso . versoNumeroN 1 $ unParDeVersos) == (primeraPalabraVerso . versoNumeroN 2 $ unParDeVersos)
+
+patronSimple :: Number -> Number -> Patron
+patronSimple posVerso1 posVerso2 unaEstrofa = conjugacionRima [(versoNumeroN posVerso1 unaEstrofa),(versoNumeroN posVerso2 unaEstrofa)]
+
+esEdrujula :: Palabra -> Bool
+esEdrujula unaPalabra = (tieneTilde . head . ultimasNVocales 3) unaPalabra
+
+type Patron = Estrofa -> Bool
+
+terminaEnEsdrujula :: Verso -> Bool
+terminaEnEsdrujula unVerso = ( esEdrujula . ultimaPalabraVerso) unVerso
+
+patronEsdrujulas :: Patron
+patronEsdrujulas unaEstrofa = all (terminaEnEsdrujula) unaEstrofa
+
+empiezanCon :: Estrofa -> Verso -> Bool
+empiezanCon unaEstrofa unVerso = (primeraPalabraVerso unVerso) == (primeraPalabraVerso . versoNumeroN 1 $ unaEstrofa)
+
+patronAnafora :: Patron
+patronAnafora unaEstrofa = all (empiezanCon unaEstrofa) unaEstrofa
+
+patronCadena :: Patron
+patronCadena [a] = True
+patronCadena (x:y:ys) | primeraPalabraVerso y  == ultimaPalabraVerso x = patronCadena (y:ys)
+                      | otherwise = False
+
+cumplePatron :: Patron -> Patron
+cumplePatron unPatron unaEstrofa = unPatron unaEstrofa
+
+combinaDos :: Patron -> Patron -> Patron
+combinaDos patron1 patron2 unaEstrofa = patron1 unaEstrofa && patron2 unaEstrofa
+
+aabb :: Patron
+aabb unaEstrofa = combinaDos (patronSimple 1 2) (patronSimple 3 4) unaEstrofa
+
+abab :: Patron
+abab unaEstrofa = combinaDos (patronSimple 1 3) (patronSimple 2 4) unaEstrofa
+
+abba :: Patron
+abba unaEstrofa = combinaDos (patronSimple 1 4) (patronSimple 2 3) unaEstrofa
+
+hardcore :: Patron
+hardcore unaEstrofa = combinaDos patronCadena patronEsdrujulas unaEstrofa
+
+type Estilo = (PuestaEscena -> PuestaEscena)
+
+data PuestaEscena = PuestaEscena{
+exaltado :: Bool,
+potencia :: Number,
+estrofa :: Estrofa,
+artista :: Artista,
+estilo :: Estilo
+} deriving (Show,Eq)
+
+aumentaPotenciaPorcentual :: Number -> PuestaEscena -> PuestaEscena
+aumentaPotenciaPorcentual unPorcentaje unaPuesta = unaPuesta { potencia  =(potencia unaPuesta) + ((/100).(*unPorcentaje) $ (potencia unaPuesta))}
+
+grita :: Estilo
+grita unaPuesta = aumentaPotenciaPorcentual 50 unaPuesta
+
+quedaExaltado :: PuestaEscena -> PuestaEscena
+quedaExaltado unaPuesta = unaPuesta { exaltado = True}
+
+responderUnAcote :: Bool -> Estilo
+responderUnAcote unaEfectividad unaPuesta | unaEfectividad = (quedaExaltado . aumentaPotenciaPorcentual 20) unaPuesta
+                                          | otherwise = aumentaPotenciaPorcentual 20 unaPuesta
+
+tirarTecnicas :: Patron -> Estilo
+tirarTecnicas unPatron unaPuesta | (unPatron . estrofa) unaPuesta = (quedaExaltado . aumentaPotenciaPorcentual 10) unaPuesta
+                                 | otherwise = aumentaPotenciaPorcentual 10 unaPuesta
+
+terminaSuFreestyle :: String -> Estrofa -> PuestaEscena -> PuestaEscena
+terminaSuFreestyle unArtista unaEstrofa unaPuesta = unaPuesta {artista = unArtista,estrofa = unaEstrofa}
+
+tiraFreestyle :: Artista -> Estrofa -> Estilo -> PuestaEscena
+tiraFreestyle unArtista unaEstrofa unEstilo = PuestaEscena False 1 unaEstrofa unArtista unEstilo
+
+type Criterio = PuestaEscena -> Number
+
+type Jurado =  [Criterio]
+
+determinaCriterio :: (PuestaEscena -> Bool) -> Number -> PuestaEscena -> Number
+determinaCriterio unaCondicion unPuntaje unaPuesta | unaCondicion unaPuesta = unPuntaje
+                                                   | otherwise = 0
+
+criterio1 :: Criterio
+criterio1 unaPuesta = determinaCriterio (cumplePatron aabb . estrofa) 0.5 unaPuesta
+
+criterio2 :: Criterio
+criterio2 unaPuesta = determinaCriterio (cumplePatron (combinaDos patronEsdrujulas (patronSimple 1 4)) . estrofa) 1 unaPuesta
+
+criterio3 :: Criterio
+criterio3 unaPuesta = determinaCriterio (exaltado . (estilo unaPuesta)) 1 unaPuesta 
+
+criterio4 :: Criterio
+criterio4 unaPuesta = determinaCriterio ((>1.5) . potencia . (estilo unaPuesta)) 2 unaPuesta
+
+alToke :: Jurado
+alToke = [criterio1,criterio2,criterio3,criterio4]
+
+puntajeUnJurado :: Jurado -> PuestaEscena -> Number
+puntajeUnJurado unJurado unaPuesta = (sum . map (flip ($) unaPuesta)) unJurado
+
+calcularPuntaje :: Jurado -> PuestaEscena -> Number
+calcularPuntaje unJurado unaPuesta = max 3 (puntajeUnJurado unJurado unaPuesta)
+
+type Competidor = (Artista,[PuestaEscena])
+
+type Batalla = (Competidor,Competidor)
+
+nombreArtista :: Competidor -> Artista
+nombreArtista = fst
+
+puestasArtista :: Competidor -> [PuestaEscena]
+puestasArtista = snd
+
+primerCompetidor :: Batalla -> Competidor
+primerCompetidor = fst
+
+segundoCompetidor :: Batalla -> Competidor
+segundoCompetidor = snd
+
+puntajeSet :: [PuestaEscena] -> Jurado -> Number
+puntajeSet setPuestas unJurado = (sum . map (calcularPuntaje unJurado)) setPuestas
+
+puntajeCompetidor :: [Jurado] -> Competidor -> Number
+puntajeCompetidor listaJurados unCompetidor = (sum . map (puntajeSet (puestasArtista unCompetidor))) listaJurados
+
+mayorSegun :: Ord b => (a -> b) -> a -> a -> a
+mayorSegun f a b | f a > f b = a
+                 | otherwise = b
+
+seLlevaElCinto :: Batalla -> [Jurado] -> String
+seLlevaElCinto unaBatalla listaJurados = (nombreArtista . mayorSegun (puntajeCompetidor listaJurados) (primerCompetidor unaBatalla)) (segundoCompetidor unaBatalla)
+
+

@@ -1,0 +1,100 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Grito = (String,Number,Bool)
+
+onomatopeyaGrito :: Grito -> String
+onomatopeyaGrito (o,_,_) = o
+
+intensidadGrito :: Grito -> Number
+intensidadGrito (_,i,_) = i
+
+mojoLaCama :: Grito -> Bool
+mojoLaCama (_,_,m) = m 
+
+nivelDeTerror :: Grito -> Number
+nivelDeTerror unGrito = (length . onomatopeyaGrito) unGrito
+
+energiaDeGrito :: Grito -> Number
+energiaDeGrito unGrito = ((*3) . nivelDeTerror) unGrito + intensidadGrito unGrito
+
+type Ninio = (String,Number,Number)
+
+nombreNinio :: Ninio -> String
+nombreNinio (nn,_,_) = nn
+
+edadNinio :: Ninio -> Number 
+edadNinio (_,en,_) = en
+
+alturaNinio :: Ninio -> Number
+alturaNinio (_,_,an) = an 
+
+type Monstruo = Ninio -> Grito
+
+gritoSullivan :: Ninio -> String
+gritoSullivan unNinio = (take (length . nombreNinio $ unNinio) (repeat 'A')) ++ "GH"
+
+intensidadSullivan :: Ninio -> Number
+intensidadSullivan unNinio = 20 / (edadNinio unNinio)
+
+haceMojarSullivan :: Ninio -> Bool
+haceMojarSullivan unNinio = ((<3).edadNinio) unNinio
+
+sullivan :: Monstruo
+sullivan unNinio = (gritoSullivan unNinio,intensidadSullivan unNinio,haceMojarSullivan unNinio)
+
+vocales = "aeiouáéíóú"
+
+esVocal :: Char -> Bool
+esVocal unaLetra = elem unaLetra vocales
+
+intensidadRandall :: Ninio -> Number
+intensidadRandall unNinio = (length . filter esVocal . nombreNinio) unNinio
+
+haceMojarRandall :: Ninio -> Bool
+haceMojarRandall unNinio = ((>0.8) . alturaNinio) unNinio && ((<1.2) . alturaNinio) unNinio
+
+randall :: Monstruo
+randall unNinio = ("Mamadera!",intensidadRandall unNinio,haceMojarRandall unNinio)
+
+chuck :: Monstruo
+chuck unNinio = (['a'..'z'],1000,True)
+
+osito :: Monstruo
+osito unNinio = ("uf",edadNinio unNinio,False)
+
+pam :: [(a->b)] -> a -> [b]
+pam listaFunc unValor = map (flip ($) unValor) listaFunc
+
+gritosEquipo :: [Monstruo] -> Ninio -> [Grito]
+gritosEquipo equipoMonstruo unNinio = pam equipoMonstruo unNinio
+
+type Campamento = [Ninio]
+
+produccionEnergeticaGritos :: [Monstruo] -> Campamento -> Number
+produccionEnergeticaGritos equipoMonstruo unCampamento = (sum . map energiaDeGrito . concat . map (gritosEquipo equipoMonstruo)) unCampamento
+
+type Risa = (Number,Number)
+
+duracionRisa :: Risa -> Number
+duracionRisa = fst
+
+intensidadRisa :: Risa -> Number
+intensidadRisa = snd
+
+energiaRisa :: Risa -> Number
+energiaRisa unaRisa = (duracionRisa unaRisa) ^ (intensidadRisa unaRisa)
+
+risasEquipo :: [Comediante] -> Ninio -> [Risa]
+risasEquipo equipoComediante unNinio = pam equipoComediante unNinio
+
+type Comediante = Ninio -> Risa
+
+produccionEnergeticaRisas :: [Comediante] -> Campamento -> Number
+produccionEnergeticaRisas equipoComediante unCampamento = (sum . map energiaRisa . concat . map (risasEquipo equipoComediante)) unCampamento
+
+produccionEnergetica :: [(Ninio -> a)] -> (a -> Number) -> Campamento -> Number
+produccionEnergetica listaTrabajadores energiaProducida unCampamento = (sum . map energiaProducida . concat . map (pam listaTrabajadores)) unCampamento
+
+

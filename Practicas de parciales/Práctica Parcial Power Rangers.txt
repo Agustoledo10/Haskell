@@ -1,0 +1,66 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Persona = Persona{
+habilidadesPersona :: [String],
+esBuena :: Bool
+} deriving (Show,Eq)
+
+-- ejemplo
+
+pablo = Persona ["programar"] False
+
+data PowerRanger = PowerRanger{
+color :: String,
+habilidadesRanger :: [String],
+nivelPelea :: Number
+}deriving (Show,Eq)
+
+-- ejemplo
+
+rangerRojo = PowerRanger "rojo" ["volar","superfuerza"] 100
+
+potenciar :: String -> String
+potenciar unaHabilidad = "super" ++ unaHabilidad
+
+potenciarHabilidades :: Persona -> [String]
+potenciarHabilidades unaPersona = map potenciar (habilidadesPersona unaPersona )
+
+definirNivelPelea :: Persona -> Number
+definirNivelPelea unaPersona = ( length . concat . habilidadesPersona) unaPersona 
+
+convertirEnPowerRanger :: String -> Persona -> PowerRanger
+convertirEnPowerRanger unColor unaPersona = PowerRanger unColor (potenciarHabilidades unaPersona) (definirNivelPelea unaPersona)
+
+formarEquipoRanger :: [String] -> [Persona] -> [PowerRanger]
+formarEquipoRanger listaColores listaPersonas = (zipWith convertirEnPowerRanger listaColores . filter (esBuena)) listaPersonas
+
+-- paso base, en lista de un elemento, el elemento es el maximo
+maximumBy [x] funcion = x
+
+-- comparar primero dos elementos para quedarme con el mayor y seguir comparandolos con los siguientes hasta llegar al final
+maximumBy (x:y:ys) funcion | funcion x > funcion y = maximumBy (x:ys) funcion
+                           | otherwise = maximumBy (y:ys) funcion
+
+-- any empleado para verificar si alguno cumple la condicion, de ser asi se filtro por ese mismo criterio y se toma el primero que se encuentre, de no ser asi, si ninguno cumple se devuelve el valor dado
+findOrElse (x:xs) condicion valor | any condicion (x:xs) = (head . filter condicion) (x:xs)
+                                  | otherwise = valor
+
+esRangerRojo :: PowerRanger -> Bool
+esRangerRojo unRanger = ((=="rojo").color) unRanger
+
+rangerLider :: [PowerRanger] -> (PowerRanger -> Bool) -> PowerRanger
+rangerLider equipoRangers esRangerRojo = findOrElse equipoRangers esRangerRojo (head equipoRangers) 
+
+rangerMasPoderoso :: [PowerRanger] -> PowerRanger
+rangerMasPoderoso equipoRangers = maximumBy equipoRangers nivelPelea
+
+rangerHabilidoso :: PowerRanger -> Bool
+rangerHabilidoso unRanger = ((>5) . length . habilidadesRanger) unRanger
+
+ay = "ay" ++ ay
+
+alfa5 = PowerRanger "Metalico" ["reparar cosas", "decir" ++ ay] 0
+
+-- rangerMasPoderoso termina, rangerHabilidoso nunca lo hace pues el string de habilidades de Ranger no se puede evaluar dado que es infinito

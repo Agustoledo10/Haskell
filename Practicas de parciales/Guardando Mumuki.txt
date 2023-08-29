@@ -1,0 +1,579 @@
+transformadaLoca [] = []
+
+transformadaLoca [cabeza] | cabeza < 19 && (rem cabeza 2) == 0 = [cabeza + 2]            | cabeza < 19 && (mod cabeza 2) == 1 = [cabeza + 1]            | cabeza == 19 = [cabeza + 5]
+                          | otherwise = []
+
+transformadaLoca lista = transformadaLoca [(head lista)] ++ transformadaLoca (tail lista)
+
+menoresA _ [] = []
+menoresA v [h] | v > h = [h]
+               | otherwise = []
+               
+menoresA v (x:xs) = menoresA v [x] ++ menoresA v xs
+
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+-- Ejercicios Funcional
+
+esMultiploDeTresV1 :: Number -> Bool
+esMultiploDeTresV1 unNumero = ((==0).mod unNumero) 3
+
+esMultiploDeV2 :: Number -> Number -> Bool
+esMultiploDeV2 n1 n2 = ((==0).mod n1) n2
+
+cuboV1 :: Number -> Number
+cuboV1 unNumero = unNumero*unNumero*unNumero
+
+areaV2 :: Number -> Number -> Number
+areaV2 altura base = altura * base
+
+esBisiestoV1 :: Number -> Bool
+esBisiestoV1 unAnio = esMultiploDeV2 unAnio 400 || (esMultiploDeV2 unAnio 4 && (not.esMultiploDeV2 unAnio) 100)
+
+celsiusToFahrV1 :: Number -> Number
+celsiusToFahrV1 unCelsius = ((+32).(*1.8)) unCelsius
+
+restar :: Number -> Number -> Number
+restar n2 n1 = n1 - n2
+
+fahrToCelsiusV1 :: Number -> Number
+fahrToCelsiusV1 unFahr = ((/1.8).(restar 32)) unFahr
+
+type Farenheit = Number
+
+haceFrio :: Farenheit -> Bool
+haceFrio unF = ((<8).fahrToCelsiusV1) unF
+
+mcmV2 :: Number -> Number -> Number
+mcmV2 n1 n2 = n1*n2/ gcd n1 n2 
+
+maximoEntreTres :: Number -> Number -> Number -> Number
+maximoEntreTres n1 n2 n3 = (max n1.max n2) n3
+
+minimoEntreTres :: Number -> Number -> Number -> Number
+minimoEntreTres n1 n2 n3 = (min n1.min n2) n3
+
+dispersion :: Number -> Number -> Number -> Number
+dispersion n1 n2 n3 = (maximoEntreTres n1 n2 n3) - (minimoEntreTres n1 n2 n3)
+
+diasParejos n1 n2 n3 = ((<30).dispersion n1 n2) n3
+
+diasLocos n1 n2 n3 = ((>60).dispersion n1 n2) n3
+
+diasNormales n1 n2 n3 = (not.diasParejos n1 n2) n3 && (not.diasLocos n1 n2) n3
+
+alturaPrimeroTres h = ((*300) . min 3) h 
+
+alturaResto h = ((*200) . max 0) (h -3)
+
+pesoPino h = alturaPrimeroTres h + alturaResto h
+
+esPesoUtil k = k <= 1000 && 400 >= k
+
+sirvePino h = (esPesoUtil . pesoPino) h
+
+siguiente n = (+1) n
+
+mitad n = (/2) n
+
+inversa a = (/a) 1
+
+triple n = (*3) n
+
+numeroPositivo n = (>0) n
+
+esBisiestoV2 n = ((==0).mod n) 400 || ((((==0).mod n) 4) && ((not.((==0).mod n)) 100))
+
+inversaRaizCuadrada n = (/(sqrt n)) 1
+
+incrementMCuadradoN m n =((+n).(*m)) m
+
+esResultadoPar n m = ((==0).(mod (n^m))) 2
+
+fst3 (f,_,_) = f
+
+snd3 (_,s,_) = s 
+
+trd3 (_,_,t) = t
+
+aplicar (f,g) n = (f n, g n)
+
+cuentaBizarra (a,b) | a > b = a+b
+                    | ((>10).(b -)) a = b - a
+                    | b > a = b * a
+                     
+esNotaBochazo n = n < 4
+
+aprobo (n1,n2) = (not.esNotaBochazo) n1 && (not.esNotaBochazo) n2
+
+promociono (n1,n2) = ((>14).(+) n1) n2 && n1 >= 6 && n2 >= 6
+
+permanece n1 n2 | n1 == -1 = n2
+                | n2 == -1 = n1
+                | otherwise = max n1 n2
+
+notasFinales ((p1,p2),(r1,r2)) =  (permanece p1 r1, permanece p2 r2)
+nota1 :: (Number,Number)
+nota1 = (2,7)
+
+recursa ((p1,p2),(r1,r2)) = (not.aprobo.notasFinales) ((p1,p2),(r1,r2))
+
+recuperoPrimero ((p1,p2),(r1,r2)) = ((/= -1)) r1
+
+rindioRecue notas = ((/=(-1)).fst.snd) notas || ((/=(-1)).snd.snd) notas
+
+recuperoDeGusto notas | (promociono.fst) notas = rindioRecue notas
+                      | otherwise = False
+
+esMayorDeEdad persona = ((>18).snd) persona
+
+esImpar n | ((==1).mod n) 2 = n +1
+          | otherwise = n
+
+esPar n   |((==0).mod n) 2 = n * 2 
+          | otherwise = n
+
+calcular tupla = ((esPar.fst) tupla, (esImpar.snd) tupla)
+
+nota2 :: (Number,Number)
+nota2 = (6,-1)
+
+promedioFrecuenciaCardiaca lista = ((/length lista).sum) lista
+
+frecuenciaCardiacaMinuto m lista = (!!) lista (div m 10)
+
+frecuenciasHastaMomento m lista = take (div m 10) lista
+
+esCapicua lista = concat lista == (reverse.concat) lista
+
+duracionLlamadas = (("horarioReducido",[20,10,25,15]),("horarioNormal",[10,5,8,2,9,10]))
+
+cuandoHabloMasMinutos unaTarifa | (sum.snd.fst) unaTarifa > (sum.snd.snd) unaTarifa =  (fst.fst) unaTarifa
+                                | otherwise = (fst.snd) unaTarifa
+
+esMultiploDeAlguno n l = any (esMultiploDeV2 n) l
+
+promedio l = ((/length l).sum) l
+
+promedioListas l = map (promedio) l
+
+filtrarAplazos l = filter (>=4) l
+
+promedioSinAplazos l = map (promedio.filtrarAplazos) l
+
+mejoresNotas l = map (maximum) l
+
+aproboV2 l = all (>=6) l
+
+aprobaron l = filter (aproboV2) l
+
+divisores n = filter (esMultiploDeV2 n) [1..n]
+
+exists f l = any (f) l
+
+hayAlgunNegativo l = any (<0) l
+
+aplicarFunciones funciones valor = map (flip ($) valor) funciones
+
+sumaF l v = foldl (flip ($)) v l
+
+sumarHabilidad v j = min 12 (j+v)
+
+flimitada f j = max 0 (min 12 (f j))
+
+subirLimitado f l = map (flimitada f) l
+
+subirHabilidad c l = map (sumarHabilidad c) l 
+
+esParB n   |((==0).mod n) 2 = True
+          | otherwise = False
+
+primerosPares l = takeWhile (esParB) l
+
+primerosNoDivisores n l = takeWhile ((not. esMultiploDeV2 n)) l
+
+huboMesMejor ingresos egresos numero = any (>numero)(zipWith (-) ingresos egresos)
+
+crecimientoAnual edad | 10 > edad = 24 - (edad * 2)
+                      | edad >= 10 && edad <= 15 = 4
+                      | edad >= 16 && edad <= 17 = 2
+                      | edad >= 18 && edad <= 19 = 1
+                      | edad >= 20 = 0
+
+crecimientoEntreEdades edad1 edad2 = (sum . map (crecimientoAnual)) [edad1..(edad2-1)]
+
+alturasEnUnAnio unaEdad listaAlturas = map (+(crecimientoAnual unaEdad)) listaAlturas
+
+deltaAltura altura edad1 edad2 = altura + crecimientoEntreEdades edad1 edad2
+
+alturaEnEdades altura edad edades = map (deltaAltura altura edad) edades
+
+data Parcial = Parcial {
+materia :: String,
+preguntas :: Number
+} deriving (Show,Eq)
+
+data Alumno = Alumno{
+nombre :: String,
+nacimiento :: (Number,Number,Number),
+legajo :: Number,
+materias :: [String],
+criterio :: (Parcial -> Bool)
+} deriving (Show,Eq)
+
+estudioso unParcial = True
+
+hijoDelRigor numero unParcial = numero < (preguntas unParcial)
+
+esImparB n = ((==1).mod n) 2
+
+cabulero unParcial = (esImparB.length.materia) unParcial
+
+nico = Alumno "Nico" (10,7,2003) 44554168 ["AGA","AM2"] estudioso
+
+alumnoCambiaHabitos unAlumno unHabito = unAlumno {criterio = unHabito}
+
+parcialPDP = Parcial "PDP" 3
+
+hdrNico = hijoDelRigor 5
+
+sumatoria [] = 0
+sumatoria lista = head lista + sumatoria (tail lista)
+
+longitud [] = 0
+longitud (x:xs) = 1 + longitud xs 
+
+fibonacci 0 = 0
+fibonacci 1 = 1
+fibonacci n = fibonacci (n-1) + fibonacci (n-2)
+
+pertenece [] n = False
+pertenece (x:xs) n | x == n = True
+                   | otherwise = pertenece xs n 
+
+interseccion [] _ = []
+interseccion _ [] = []
+
+interseccion (x:xs) (y:ys) | x == y = (x:interseccion xs ys)
+                           | otherwise = interseccion xs ys
+
+
+
+transformadaLoca [] = []
+transformadaLoca (x:xs) | x > 19 = transformadaLoca xs
+                        | x < 19 && even x = (x+2:transformadaLoca xs)
+                        | x < 19 && odd x = (x+1:transformadaLoca xs)
+                        | x == 19 = (x:transformadaLoca xs)
+
+productoria [] = 0
+productoria [a] = a
+productoria (x:xs) = x * (productoria xs)
+
+maximo [a] = a
+maximo (x:y:ys) | x > y = maximo (x:ys)
+                | otherwise = maximo (y:ys)
+
+menoresA n [] = []
+menoresA n (x:xs) | x < n = (x:menoresA n xs)
+                  | otherwise = menoresA n xs
+
+diferencias [a] = []
+diferencias (x:y:ys) = (abs(x - y):diferencias (y:ys))
+
+sinRepetidos [a] = [a]
+sinRepetidos (x:xs) | any (==x) xs = sinRepetidos xs
+                    | otherwise = (x:sinRepetidos xs)
+
+
+promedios [[a]] = [a]
+promedios (x:xs) = (promedio x: promedios xs)
+
+promediosSinAplazos [[a]] = [a]
+promediosSinAplazos (x:xs) = (promedio (filtrarAplazos x):promedioSinAplazos xs) 
+
+alVesre [] = []
+alVesre (x:xs) = alVesre xs ++ [x]
+
+filtrar f [] = []
+filtrar f (x:xs) | f x = (x:filtrar f xs)
+                 | otherwise = filtrar f xs
+
+aparearCon _ [] _ = []
+aparearCon _ _ [] = []
+aparearCon f (x:xs) (y:ys) = ((f x y): aparearCon f xs ys)
+
+maximoSegun _ [a] = a
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                       | otherwise = maximoSegun f (y:ys)
+
+aplanar [a] = a
+aplanar [] = []
+aplanar (x:xs) = x ++ aplanar xs
+
+intercalar _ [] = []
+intercalar e (x:xs) = (x:e:intercalar e xs)
+
+primerosN n = [1..n]
+
+cuentoDeLaBuena = ["Te cuento el cuento de la buena pipa"] ++ cycle ["Sí!","Pero, te cuento el cuento de la buena pipa?"]
+
+type Auto1 = (String,Number,Number)
+
+autoPepe =("ABW100",0,55)
+
+autoMara = ("GIR982",10,65)
+
+patente1 (p,_,_) = p
+
+nafta1 (_,n,_) = n
+
+capacidad1 (_,_,c) = c
+
+sumarNafta sumnafta actnaft capacidad = min capacidad (actnaft+sumnafta)
+
+cargarTanque1 nafta unAuto = ((patente1 unAuto),sumarNafta nafta (nafta1 unAuto) (capacidad1 unAuto) ,(capacidad1 unAuto))
+
+vaciarTanque (unaPatente,unaNafta,unaCapacidad) = (unaPatente,0,unaCapacidad)
+
+estaVacio unAuto = ((==0).nafta1) unAuto
+
+estaLLeno unAuto = ((==(capacidad1 unAuto)).nafta1) unAuto
+
+data Auto2 = Auto2 {
+patente2 :: String,
+nafta2 :: Number,
+capacidad2 :: Number
+} deriving (Show,Eq)
+
+autoPepe2 = Auto2 "ABW100" 0 55
+
+autoMara2 = Auto2 "GIR982" 10 65
+
+cargarTanque2 :: Number -> Auto2 -> Auto2
+cargarTanque2 nafta unAuto = unAuto {nafta2 = sumarNafta nafta (nafta2 unAuto) (capacidad2 unAuto)}
+
+estaLLeno2 unAuto = ((==(capacidad2 unAuto)).nafta2) unAuto
+
+estaVacio2 unAuto = ((==0).nafta2) unAuto
+
+cuantoFalta auto = (capacidad2 auto) - (nafta2 auto)
+
+transferir :: Auto2 -> Auto2 -> (Auto2, Auto2)
+transferir autoA autoB = ( autoA{nafta2 = max 0 ((nafta2 autoA)-(cuantoFalta autoB))}, autoB {nafta2 = min (capacidad2 autoB) (min (cuantoFalta autoB) (nafta2 autoA))} )
+
+type ServicioAutomotor = Auto2 -> Auto2
+
+enchularPatente :: String -> ServicioAutomotor
+enchularPatente string unAuto = unAuto {patente2 = (take 3 string) ++ (drop 3 (patente2 unAuto))}
+
+hacerService :: Auto2 -> [ServicioAutomotor] -> Auto2
+hacerService unAuto listaServicios = foldl (flip ($)) unAuto listaServicios
+
+juntarStrings unString listaString = foldl1 (\otrostring string -> otrostring ++ unString ++ string) listaString
+
+intersectar l1 l2 = filter (\a -> elem a l2) l1 
+
+diferencia l1 l2 = filter (\a -> (not.elem a) l2) l1
+
+hayMultiploDe n l = any (\a -> ((==0).mod a) n) l
+
+totalKilosProductos l = (sum . map (\(a,b) -> b)) l
+
+sumarSegun f l = (foldl (+) 0 . map f) l
+
+esMultiploEj n1 n2 | esMultiploDeV2 n1 n2 = 0
+                   | otherwise = n1
+
+esMultiploFoldl n l = (foldl esMultiploEj n l) == 0 
+
+mejoresNotas2 l = map (foldr max (-1)) l
+
+aproboV3 l = ((>=4).foldl (min) 4) l
+
+app v f l =  [f v] ++ l
+
+pam lf v = foldr (app v) [] lf
+
+mantengo v1 v2 = v1
+
+cabeza l = foldl1 mantengo l 
+
+cumple cond v listaAux | cond v = [v] ++ listaAux
+                       | otherwise = listaAux
+
+filtroV2  cond [] = []
+filtroV2 cond l = foldr (cumple cond) [] l 
+
+mantengoMayor funcion x y | funcion x > funcion y = x
+                          | otherwise = y
+
+maximSegun funcion lista = foldl1 (mantengoMayor funcion) lista
+
+aparear funcion tupla listaAux = [funcion (fst tupla) (snd tupla)] ++ listaAux
+
+aparearCon2 funcion lista1 lista2 =(foldr (aparear funcion) [] . zip lista1) lista2
+
+obtenerNumeros n = [n,(-1*n)]
+
+positivosYNegativos lista = concatMap (obtenerNumeros) lista
+
+-- Inf tipos recargada
+-- f :: (b->c) -> b -> c
+-- f :: (a -> Bool) -> a -> a -> Bool
+-- f :: (a -> b) -> a -> a -> (b-> b-> c) -> c
+-- f :: (c -> d) -> (b -> c) -> (a->b) -> a -> d
+-- f :: (a -> b -> c) -> b -> a -> c
+-- f :: (a,a) -> (a -> b -> c) -> (b,b) -> c
+-- f :: (a -> Bool) -> [a] -> a
+-- f1 :: (a -> b -> c) -> (d -> b) -> a -> d -> c
+-- f1 :: (Show a ) => a -> b -> a
+-- f1 :: (Eq a) => (b->a) -> (b->a) -> b -> Bool
+-- f1 :: (Num a,Eq b) => (a -> b) -> (a -> b) -> a -> Bool
+-- f1 :: a -> a -> (a -> Bool) -> a
+-- f1 :: (Ord a) => b -> (b->a) -> Bool
+-- f1 :: (Ord a,Ord b) => b -> b -> (b -> a) -> Bool
+-- f1 :: Show a => a -> String
+-- f1 :: (Num b) => (a -> b) -> (a -> Bool) -> [a] -> b
+-- f1 :: (Show b) => (a -> Bool) -> (a -> b) -> (a -> b) -> a -> b
+-- f1 :: (c -> d) -> (b -> c) -> (a -> b) -> a -> d
+-- map :: (a->b) -> [a] -> [b]
+recortarTuit (a,b) = (a, take 15)
+
+recortar tuits = map (recortarTuit) 
+
+tuitCorto tuit = ((<10).length.snd)
+
+
+--cantidadTuitsCortos l= (length.filter tuitCorto) 
+
+-- filter :: (a -> Bool) -> [a] -> [a]
+
+--resumir = csv.snd. recortarTuit
+
+sumarSegun2 f l = (sum . map f) l
+
+alguno cond l = ((/= 0).length. filter cond) l
+
+esCapicua2 l = concat l == (reverse. concat) l 
+
+esMultiploDeAlguno3 n l = any (esMultiploDeV2 n) l
+
+type Tarifas = ([Number],[Number])
+
+cuandoHizoMasLlamadas tarifas | (length.fst) tarifas > (length.snd) tarifas = "normal"
+                              | otherwise = "reducido"
+
+cuandoHizoLaLlamadaMasLarga tarifas | (maximum.fst) tarifas > (maximum.snd) tarifas = "normal"
+                            | otherwise = "reducido"
+
+cuandoHizoMasLlamadasBreves tarifas | (length. filter (<2).fst) tarifas > (length. filter (<2).snd) tarifas = "normal"
+                            | otherwise = "reducido"
+
+cuandoHabloMas tarifas | (sum.fst) tarifas > (sum.snd) tarifas = "normal"
+                       | otherwise = "reducido"
+
+cuantosCumple cond l = (length.filter cond) l
+
+rechazar cond l = filter (not.cond) l
+
+contiene e l = ((/=0).length.filter (==e)) l
+
+rotar (x:xs) = xs ++ [x]
+
+iniciales strings = (map head . words) strings
+
+pam1 lista v = map (flip ($) v) lista
+
+armarPartidos e1 e2 = (e1,e2)
+
+mismoEq (e1,e2) = e1 == e2
+
+armarFixture b1 b2 = (filter (not.mismoEq) . zipWith armarPartidos b1) b2
+
+esMuzza tupla = ((=="muzza").fst) tupla
+
+cuantasMuzzas orden = (ceiling. (/8) . sum . map snd . filter (esMuzza)) orden
+
+orden1 = [("fugaza",1), ("muzza",2), ("muzza",3), ("fugaza",1), ("morrone",1), ("muzza",4)]
+
+-- elDobleEsMultiploDeTres :: Num a => a -> Bool
+
+largoEsPar :: String -> Bool
+largoEsPar string = (even.length) string
+
+-- nombreCompleto :: String -> String -> String
+
+-- mitad :: Float -> Float
+
+-- esParO :: Num a => a -> Bool -> Bool
+-- sumarDos :: Num a => a -> a
+-- multiplicar Num a => a -> a -> a
+-- fueraDeRango :: Ord a => a -> a -> a -> Bool
+-- longitudPar :: String -> Bool
+-- largoDelShow :: Num a => a -> a -> Bool
+-- maximoEntreTres :: Ord a => a -> a -> a -> a
+-- soloElPrimero :: Show a => a -> b -> a
+-- noTanDistintos :: Eq a,b => a -> a -> b -> b -> Bool
+
+esMenorSegun f x y | f x < f y = x
+                   | otherwise = y
+
+-- saludar :: (String -> String) -> String -> String
+
+dobleDelLargo string = ((*2).length) string
+
+sumarNumeroAlTriple triplicar sumar = ((+sumar).(*3)) triplicar
+
+sumaEsPar n1 n2 = ((== 0).flip (mod) 2.(+n1)) n2
+
+cuantoPagaCadaUno precio comensales = (ceiling.(/comensales).(*precio).ceiling. (/8).(*3)) comensales
+
+algunoCumple cond n1 n2 n3 = cond n1 || cond n2 || cond n3
+
+mejor f1 f2 v | f1 v  > f2 v = f1 v
+              | otherwise = f2 v
+
+titulo libro = ((<1959).snd) libro
+
+aplicarPar f a b = (f a,f b)
+
+tuplaDeFunciones f1 f2 v = (f1 v,f2 v)
+
+darVuelta f a b = flip (f) a b
+
+-- componer :: (b-> c) -> (a -> b) -> a -> cabeza
+
+minimoEntre a b | a > b = b
+                | otherwise = a
+
+cantidadDePochoclosParaMinutosDeCine minutos | 40 > minutos = 2
+                                             | 200 < minutos = 10
+                                             | otherwise = (ceiling.(/20)) minutos
+
+-- horasDuerme persona | programa persona = 6
+--                     | estudiaIngeniera persona = 4
+
+--siempreDiceLaVerdad persona = esChico persona || esBorracho persona
+
+esCero 0 = True
+esCero _ = False
+
+puntosParaSetenta 1 = 5.5
+puntosParaSetenta 10 = 0.5
+puntosParaSetenta 11 = 0.5
+puntosParaSetenta 12 = 0.5
+puntosParaSetenta n = n
+
+cuadrado n = n*n
+
+distanciaAlOrigen punto = sqrt ((cuadrado.fst) punto + (cuadrado.snd) punto)
+
+
+type Soldado = (String,Number,Number)
+
+poderSoldado :: Soldado -> Number
+poderSoldado (nombre,fuerza,destreza) = fuerza * destreza
+
+soldadoLeGanaA ganador perdedor 

@@ -1,0 +1,43 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Lugar = (String,Number,[String])
+
+playero :: Lugar -> Bool
+playero (_,_,caracteristicas) = elem "Playa" caracteristicas
+
+mejorCerca :: Lugar -> Bool
+mejorCerca (_,distanciaBsAs,_) = distanciaBsAs < 500
+
+esComestible :: String -> Bool
+esComestible elemento = elemento == "Alfajores" || elemento == "Chocolate"
+
+
+gastronomico :: Lugar -> Bool
+gastronomico (_,_,caracteristicas) = any (esComestible) caracteristicas
+
+esquiador :: Lugar -> Bool
+esquiador (_,distanciaBsAs,caracteristicas) = distanciaBsAs < 500 && elem "Nieve" caracteristicas && elem "Montanias" caracteristicas
+
+type Persona = (String,(Lugar -> Bool))
+
+puedeIr :: Persona -> [Lugar] -> [String]
+puedeIr unaPersona listaLugares  = (map nombre . filter (leGusta unaPersona)) listaLugares
+
+preferencia unaPersona = snd unaPersona
+
+nombre (n,_,_) = n
+caracteristicas (_,_,c) = c
+
+leGusta :: Persona -> Lugar -> Bool
+leGusta unaPersona unLugar = (preferencia unaPersona) unLugar
+
+puedenIrTodosA :: [Persona] -> Lugar -> Bool
+puedenIrTodosA grupoPersonas unLugar = all ((flip leGusta) unLugar) grupoPersonas 
+
+leGustaATodos :: [Persona] -> Lugar -> Bool
+leGustaATodos unaFamilia unLugar = puedenIrTodosA unaFamilia unLugar
+
+familiaPuedeViajar :: [Persona] -> [Lugar] -> [Lugar]
+familiaPuedeViajar unaFamilia listaLugares = filter (leGustaATodos unaFamilia) listaLugares

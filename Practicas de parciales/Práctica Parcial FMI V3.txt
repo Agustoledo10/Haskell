@@ -1,0 +1,84 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Pais = Pais{
+ingresoPerCapita :: Number,
+activosPublico :: Number,
+activosPrivado :: Number,
+recursosNaturales :: [String],
+deudaEnMill :: Number
+} deriving (Show,Eq)
+
+type Estrategia = Pais -> Pais
+
+-- Si un país tiene recursos infinitos, la funcion de puede Zafar unicamente dara respuesta para cuando sea Verdadero. Es decir, solo funciona cuando la lista 
+-- infinita es de petroleo, puesto que obtiene la condicion buscada y no tiene la necesidad de seguir evaluando la lista. Caso contrario, la función
+-- no ofrece respuesta, puesto que se buscará constantemente entre los recursos al petroleo. Al no encontrarlo se evalúa el siguiente elemento y así
+-- infinitamente. Diverge
+-- Por otra parte, el tener una lista infinita de recursos no infkluye en nada a la deuda con el fmi, puesto que son dos apartados distintos dentro
+-- del dato compuesto que es un pais. 
+
+operacionPorcentual :: Number -> Number -> Number
+operacionPorcentual unPorcentaje unTotal = unTotal + ((/100).(*unPorcentaje)) unTotal
+
+modificarDeuda :: (Number -> Number) -> Pais -> Pais
+modificarDeuda unaModificacion unPais = unPais { deudaEnMill = (unaModificacion . deudaEnMill) unPais}
+
+modificarActivosPublico :: Number -> Pais -> Pais
+modificarActivosPublico unNumero unPais = unPais { activosPublico = (activosPublico unPais) - unNumero}
+
+reducirIngresoPerCapita ::  Pais -> Pais
+reducirIngresoPerCapita unPais | ((>100).activosPublico) unPais = unPais { ingresoPerCapita = (operacionPorcentual (-20) . ingresoPerCapita) unPais}
+                               | otherwise = unPais {ingresoPerCapita = (operacionPorcentual (-15) . ingresoPerCapita) unPais}
+
+apropiaRecurso :: String -> Pais -> Pais
+apropiaRecurso unRecurso unPais = unPais {recursosNaturales = (filter (/= unRecurso) . recursosNaturales) unPais}
+
+prestamo :: Number -> Estrategia
+prestamo unPrestamo unPais = modificarDeuda (operacionPorcentual 150) unPais
+
+recortarSectorPublico :: Number -> Estrategia
+recortarSectorPublico unaCantidad unPais = (reducirIngresoPerCapita . modificarActivosPublico unaCantidad) unPais
+
+empresaAfin :: String -> Estrategia
+empresaAfin unRecurso unPais = (apropiaRecurso unRecurso . modificarDeuda (flip (-) 2)) unPais
+
+totalActivos :: Pais -> Number
+totalActivos unPais = (activosPrivado unPais) + (activosPublico unPais)
+
+pbi :: Pais -> Number
+pbi unPais = ((ingresoPerCapita unPais)* (totalActivos unPais)) / 2 
+
+blindaje :: Estrategia
+blindaje unPais = (modificarActivosPublico 500 . prestamo (((/2).pbi) unPais)) unPais
+
+namibia = Pais 4140 400000 500000 ["mineria","ecoturismo"] 50
+
+type Receta = [Estrategia]
+
+implementarEstrategia :: Estrategia -> Estrategia
+implementarEstrategia unaEstrategia unPais = unaEstrategia unPais
+
+tienePetroleo :: Pais -> Bool
+tienePetroleo unPais = (elem "petroleo" . recursosNaturales) unPais
+
+puedeZafar :: [Pais] -> [Pais]
+puedeZafar listaPaises = filter (tienePetroleo) listaPaises
+
+totalDeuda :: [Pais] -> Number
+totalDeuda listaPaises = (sum . map deudaEnMill) listaPaises
+
+ordenadoDecrecienteSegun :: Ord b => (a -> b) -> [a] -> Bool
+ordenadoDecrecienteSegun _ [a] = True
+ordenadoDecrecienteSegun f (x:y:ys) | f x < f y = ordenadoDecrecienteSegun f (y:ys)
+                                    | otherwise = False
+
+pbiDpsReceta :: Pais -> Receta -> Number
+pbiDpsReceta unPais unaReceta = (pbi . foldl (flip (implementarEstrategia)) unPais) unaReceta
+
+estanOrdenadas :: [Receta] -> Pais -> Bool
+estanOrdenadas listaRecetas unPais = ordenadoDecrecienteSegun (pbiDpsReceta unPais) listaRecetas
+
+
+

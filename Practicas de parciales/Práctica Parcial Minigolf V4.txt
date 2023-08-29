@@ -1,0 +1,156 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+import Prelude (Float)
+
+-- Modelo inicial
+data Jugador = Jugador {
+nombre :: String,
+padre :: String,
+habilidad :: Habilidad
+} deriving (Eq, Show)
+
+data Habilidad = Habilidad {
+fuerzaJugador :: Number,
+precisionJugador :: Number
+} deriving (Eq, Show)
+
+-- Jugadores de ejemplo
+bart = Jugador "Bart" "Homero" (Habilidad 25 60)
+todd = Jugador "Todd" "Ned" (Habilidad 15 80)
+rafa = Jugador "Rafa" "Gorgory" (Habilidad 10 1)
+
+data Tiro = Tiro {
+velocidad :: Number,
+precision :: Number,
+altura :: Number
+} deriving (Eq, Show)
+
+type Puntos = Int
+
+-- Funciones útiles
+between n m x = elem x [n .. m]
+
+maximoSegun f = foldl1 (mayorSegun f)
+mayorSegun f a b
+  | f a > f b = a
+
+
+type Palo = Habilidad -> Tiro
+
+putter :: Palo
+putter unaHabilidad = Tiro 10 ((*2).precisionJugador $ unaHabilidad) 0
+
+madera :: Palo
+madera unaHabilidad = Tiro 100 ((/2) . precisionJugador $ unaHabilidad) 5
+
+hierro :: Number -> Palo
+hierro unNumero unaHabilidad = Tiro ((*unNumero) . fuerzaJugador $ unaHabilidad) ((/unNumero) . precisionJugador $ unaHabilidad) (unNumero - 3)
+
+hierros :: [Palo]
+hierros = map hierro [1..10]
+
+palos = [putter,madera] ++ hierros
+
+golpe :: Jugador -> Palo -> Tiro
+golpe unJugador unPalo = (unPalo . habilidad) unJugador 
+
+data Obstaculo = Obstaculo{
+efectoObstaculo :: Tiro -> Tiro,
+condicionObstaculo :: Tiro -> Bool
+} deriving (Show,Eq)
+
+seDetiene :: Tiro -> Tiro
+seDetiene unTiro = Tiro 0 0 0
+
+intentoSuperarObstaculo :: Tiro -> Obstaculo -> Tiro
+intentoSuperarObstaculo unTiro unObstaculo | (condicionObstaculo unObstaculo) unTiro = (efectoObstaculo unObstaculo) unTiro
+                                           | otherwise = seDetiene unTiro
+
+aspectoEntre :: (Tiro -> Number) -> Number -> Number -> Tiro -> Bool
+aspectoEntre unAspecto cotaInferior cotaSuperior unTiro = cotaInferior <= (unAspecto unTiro) && cotaSuperior >= (unAspecto unTiro)
+
+aspectoMayorA :: (Tiro -> Number) -> Number -> Tiro -> Bool
+aspectoMayorA unAspecto unaCota unTiro = unaCota < (unAspecto unTiro)
+
+efectoTunel :: Tiro -> Tiro
+efectoTunel unTiro = Tiro ((*2) . velocidad $ unTiro) 100 0
+
+condicionTunel :: Tiro -> Bool
+condicionTunel unTiro = aspectoMayorA precision 90 unTiro && ((==0) . altura) unTiro
+
+efectoLaguna :: Number -> Tiro -> Tiro
+efectoLaguna largoLaguna unTiro = unTiro {altura = ((/largoLaguna) . precision) unTiro} 
+
+condicionLaguna :: Tiro -> Bool
+condicionLaguna unTiro = aspectoMayorA velocidad 80 unTiro && aspectoEntre altura 1 5 unTiro
+
+efectoHoyo :: Tiro -> Tiro
+efectoHoyo unTiro = seDetiene unTiro
+
+condicionHoyo :: Tiro -> Bool
+condicionHoyo unTiro = aspectoEntre velocidad 5 20 unTiro && aspectoMayorA precision 95 unTiro
+
+tunel :: Obstaculo
+tunel = Obstaculo efectoTunel condicionTunel
+
+laguna :: Number -> Obstaculo
+laguna largoLaguna = Obstaculo (efectoLaguna largoLaguna) condicionLaguna
+
+hoyo :: Obstaculo
+hoyo = Obstaculo efectoHoyo condicionHoyo
+
+superaLaguna :: Number -> Tiro -> Tiro
+superaLaguna largoLaguna unTiro = intentoSuperarObstaculo unTiro (laguna largoLaguna)
+
+superaTunel :: Tiro -> Tiro
+superaTunel unTiro = intentoSuperarObstaculo unTiro tunel
+
+superaHoyo :: Tiro -> Tiro
+superaHoyo unTiro = intentoSuperarObstaculo unTiro hoyo
+
+sirveParaSuperar :: Obstaculo -> Jugador -> Palo -> Bool
+sirveParaSuperar unObstaculo unJugador unPalo = (condicionObstaculo unObstaculo) (golpe unJugador unPalo)
+
+palosUtiles :: Jugador -> Obstaculo -> [Palo]
+palosUtiles unJugador unObstaculo = filter (sirveParaSuperar unObstaculo unJugador) palos
+
+tirosConsecutivos :: [Obstaculo] -> Tiro -> [Tiro]
+tirosConsecutivos listaObstaculos unTiro = zipWith ($) ([id] ++ map (efectoObstaculo) listaObstaculos) (repeat unTiro)
+
+cuantosConsecutivos :: [Obstaculo] -> Tiro -> Number
+cuantosConsecutivos listaObstaculos unTiro =  (length . takeWhile (\(a,b) -> (condicionObstaculo a) b) . zip listaObstaculos . tirosConsecutivos listaObstaculos) unTiro
+
+obstaculosSuperados :: Jugador -> [Obstaculo] -> Palo -> Number
+obstaculosSuperados unJugador listaObstaculos unPalo = (length . filter (flip ($) (golpe unJugador unPalo) . condicionObstaculo)) listaObstaculos
+
+paloMasUtil :: Jugador -> [Obstaculo] -> Palo
+paloMasUtil unJugador listaObstaculos = maximoSegun (obstaculosSuperados unJugador listaObstaculos) palos
+
+type Resultado = (Jugador,Puntos)
+
+tieneMenosPuntos :: Resultado -> Resultado -> Bool
+tieneMenosPuntos unResultado otroResultando = (snd unResultado) > (snd otroResultando)
+
+ganador :: [Resultado] -> Resultado -> Bool
+ganador listaResultados unResultado = (all (tieneMenosPuntos unResultado) . filter (/= unResultado)) listaResultados
+
+padresPerdedores :: [Resultado] -> [String]
+padresPerdedores listaResultados = (map padre . map fst . filter (not . ganador listaResultados)) listaResultados
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

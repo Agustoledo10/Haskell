@@ -1,0 +1,63 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Postulante = Postulante {nombre :: String, edad :: Number, remuneracion :: Number, conocimientos :: [String]} | Estudiante {legajo :: Number, conocimientosAlumno :: [String]}deriving (Show,Eq)
+
+pepe = Postulante "Jose Perez" 35 15000.0 ["Haskell", "Prolog", "Wollok", "C"]
+tito = Postulante "Roberto González" 20 12000.0 ["Haskell", "Php"]
+
+type Nombre = String
+data Puesto = Puesto {puesto:: String, conocimientoRequeridos :: [String]} deriving Show
+jefe = Puesto "gerente de sistemas" ["Haskell", "Prolog", "Wollok"]
+chePibe = Puesto "cadete" ["ir al banco"]
+ 
+apellidoDueno:: Nombre
+apellidoDueno = "Gonzalez"
+
+type Requisito = Postulante -> Bool
+
+--(all (\unConocimientoRequerido -> elem unConocimientoRequerido (conocimientos unPostulante)) . conocimientoRequeridos) unPuesto
+
+tieneConocimientos :: Puesto -> Requisito
+tieneConocimientos unPuesto unPostulante = (all (flip (elem) (conocimientos unPostulante)) . conocimientoRequeridos) unPuesto
+
+edadAceptable :: Number -> Number -> Requisito
+edadAceptable edadMin edadMax unPostulante = (edad unPostulante) > edadMin && (edad unPostulante) < edadMax
+
+sinArreglo :: Requisito
+sinArreglo unPostulante = ((/=apellidoDueno) . last . words . nombre) unPostulante
+
+cumpleRequisito :: Requisito -> Requisito
+cumpleRequisito unRequisito unPostulante = unRequisito unPostulante
+
+cumpleTodos :: [Requisito] -> Postulante -> Bool
+cumpleTodos listaRequisitos unPostulante = all (flip (cumpleRequisito) unPostulante) listaRequisitos
+
+preSeleccion :: [Postulante] -> [Requisito] -> [Postulante]
+preSeleccion listaPostulantes listaRequisitos = filter (cumpleTodos listaRequisitos) listaPostulantes
+
+ejConsulta :: [Postulante]
+ejConsulta = preSeleccion [pepe,tito] [tieneConocimientos jefe,sinArreglo,edadAceptable 30 40, (not . elem "repetir logica" . conocimientos)]
+
+incrementarEdad :: Postulante -> Postulante
+incrementarEdad unPostulante = unPostulante {edad = (edad unPostulante) +1}
+
+aumentarSueldo :: Number -> Postulante -> Postulante
+aumentarSueldo unPorcentaje unPostulante = unPostulante {remuneracion = (remuneracion unPostulante) + (((/100).(*unPorcentaje)) (remuneracion unPostulante))}
+
+actualizarPosutlante :: [Postulante] -> [Postulante]
+actualizarPosutlante listaPostulantes = map (aumentarSueldo 27 . incrementarEdad) listaPostulantes
+
+-- si la lista de postulantes, la funcion no presenta respuesta, pues se queda evaluando y actualizando a cada postulante
+
+capacitar :: String -> Postulante -> Postulante
+capacitar unConocimiento (Postulante unNombre unaEdad unaRemuneracion listaConocimientos) = (Postulante unNombre unaEdad unaRemuneracion ((listaConocimientos) ++ [unConocimiento]))
+capacitar unConocimiento (Estudiante unLegajo listaConocimientos) = (Estudiante unLegajo (((reverse . drop 1 . reverse) listaConocimientos) ++ [unConocimiento]))
+
+capacitacion :: Puesto -> Postulante -> Postulante
+capacitacion unPuesto unPostulante = (foldl (flip capacitar) unPostulante . conocimientoRequeridos) unPuesto
+
+
+
+

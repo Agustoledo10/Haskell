@@ -1,0 +1,107 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+import Prelude (Float)
+
+data Auto = Auto{
+colorAuto :: String,
+velocidadAuto :: Number,
+distanciaRecorrida :: Number
+} deriving (Show,Eq)
+
+type Carrera = [Auto]
+
+distanciaAutos :: Auto -> Auto -> Number
+distanciaAutos unAuto otroAuto = abs (distanciaRecorrida unAuto - distanciaRecorrida otroAuto)
+
+sonDistintos :: Auto -> Auto -> Bool
+sonDistintos  autoReferencia otroAuto =  autoReferencia /= otroAuto
+
+estaCerca :: Auto -> Auto -> Bool
+estaCerca autoReferencia otroAuto = sonDistintos autoReferencia otroAuto && ((<10).distanciaAutos autoReferencia) otroAuto
+
+ningunoCerca :: Auto -> Carrera -> Bool
+ningunoCerca unAuto unaCarrera = (not . any (estaCerca unAuto)) unaCarrera
+
+leVaGanando :: Auto -> Auto -> Bool
+leVaGanando unAuto otroAuto = distanciaRecorrida unAuto > distanciaRecorrida otroAuto
+
+lesVaGanando :: Auto -> Carrera -> Bool
+lesVaGanando unAuto unaCarrera = (all (leVaGanando unAuto) . filter (sonDistintos unAuto)) unaCarrera
+
+vaTranquilo :: Auto -> Carrera -> Bool
+vaTranquilo unAuto unaCarrera = lesVaGanando unAuto unaCarrera && (ningunoCerca unAuto) unaCarrera
+
+puesto :: Auto -> Carrera -> Number
+puesto unAuto unaCarrera = (length . filter (flip leVaGanando unAuto)) unaCarrera + 1
+
+corre :: Number -> Auto -> Auto
+corre unTiempo unAuto = unAuto {distanciaRecorrida =  ((*unTiempo) . velocidadAuto $ unAuto) + (distanciaRecorrida unAuto)}
+
+alterarVelocidad :: (Number -> Number) -> Auto -> Auto
+alterarVelocidad unModificador unAuto = unAuto {velocidadAuto = (unModificador . velocidadAuto) unAuto}
+
+disminuirVelocidad :: Number -> Number -> Number
+disminuirVelocidad unaCantidad unaVelocidad = max 0 (unaVelocidad - unaCantidad)
+
+bajarVelocidad :: Number -> Auto -> Auto
+bajarVelocidad unaCantidad unAuto = alterarVelocidad (disminuirVelocidad unaCantidad) unAuto
+
+type PowerUp = Auto -> Carrera -> Carrera
+
+afectarALosQueCumplen :: (a -> Bool) -> (a -> a) -> [a] -> [a]
+afectarALosQueCumplen criterio efecto lista = (map efecto . filter criterio) lista ++ filter (not.criterio) lista
+
+terremoto :: PowerUp
+terremoto unAuto unaCarrera = afectarALosQueCumplen (estaCerca unAuto) (bajarVelocidad 50) unaCarrera
+
+miguelitos :: Number -> PowerUp
+miguelitos unaCantidad unAuto unaCarrera = afectarALosQueCumplen (leVaGanando unAuto) (bajarVelocidad unaCantidad) unaCarrera
+
+efectoJetPack :: Number -> Auto -> Auto
+efectoJetPack unTiempo unAuto = ( alterarVelocidad (/2) . corre unTiempo . alterarVelocidad (*2)) unAuto
+
+jetpack :: Number -> PowerUp
+jetpack unTiempo unAuto unaCarrera = afectarALosQueCumplen (== unAuto) (efectoJetPack unTiempo) unaCarrera
+
+type Evento = Carrera -> Carrera
+
+type RegistroTabla = (Number,String)
+
+obtenerInfoTabla :: Carrera -> Auto -> RegistroTabla
+obtenerInfoTabla unaCarrera unAuto = (puesto unAuto unaCarrera,colorAuto unAuto)
+
+simularCarrera :: Carrera -> [Evento] -> [RegistroTabla]
+simularCarrera unaCarrera listaEventos = (map (obtenerInfoTabla unaCarrera). foldl (flip ($)) unaCarrera) listaEventos
+
+correnTodos :: Number -> Evento
+correnTodos unTiempo unaCarrera = map (corre unTiempo) unaCarrera
+
+buscarAutoColor :: String -> Carrera -> Auto
+buscarAutoColor unColor unaCarrea = (head . filter ((==unColor).colorAuto)) unaCarrea
+
+usaPowerUp :: String -> PowerUp ->  Evento
+usaPowerUp unColor unPowerUp unaCarrera = unPowerUp (buscarAutoColor unColor unaCarrera) unaCarrera
+
+rojo :: Auto
+rojo = Auto "Rojo" 120 0
+blanco :: Auto
+blanco = Auto "Blanco" 120 0
+negro :: Auto
+negro = Auto "Negro" 120 0
+azul :: Auto
+azul = Auto "Azul" 120 0
+
+unaCarrera1 :: Carrera
+unaCarrera1 = [azul,blanco,negro,rojo]
+
+listaEventos1 :: [Evento]
+listaEventos1 = [correnTodos 30, usaPowerUp "Azul" (jetpack 3),usaPowerUp "Blanco" terremoto,correnTodos 40, usaPowerUp "Blanco" (miguelitos 20),usaPowerUp "Negro" (jetpack 6),correnTodos 10]
+
+ejCarrera :: [RegistroTabla]
+ejCarrera = simularCarrera unaCarrera1 listaEventos1
+
+
+
+
+

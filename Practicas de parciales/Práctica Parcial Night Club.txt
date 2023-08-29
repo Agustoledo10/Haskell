@@ -1,0 +1,93 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+discotequers = [("fer", 500, 10, [("Coca cola", 1), ("Sprite Zero", 1)]),("mati", 1670, 2000, [("Cerveza", 2)]),("german", 40000, 200000, [("Grog XD", 25), ("Cerveza", 1)]),("flor", 5000, 15, [("Grapa", 1)])] 
+
+bebidas = [("Coca cola", 0), ("Grog XD", 350), ("Sprite Zero", 0),("Cerveza", 10), ("Grapa", 40)] 
+
+type Nombre = String
+
+type Levante = Number
+
+type Aguante = Number
+
+type Graduacion = Number
+
+type Bebida = (String,Graduacion)
+
+type Trago = (String , Number)
+
+type Persona = (Nombre,Levante,Aguante,[Trago])
+
+nombre :: Persona -> Nombre
+nombre (n, _, _, _) = n
+
+levante :: Persona -> Levante
+levante (_, l, _, _) = l
+
+aguante :: Persona -> Aguante
+aguante (_, _, a, _) = a
+
+tragos :: Persona -> [Trago]
+tragos (_, _, _, t) = t
+
+bebida :: Bebida -> String
+bebida unaBebida = fst unaBebida 
+
+graduacion :: Bebida -> Number
+graduacion unaBebida = snd unaBebida 
+
+
+find criterio = head . filter criterio
+
+tieneNombre :: Nombre -> Persona -> Bool
+tieneNombre unNombre  unaPersona = ((== unNombre) . nombre) unaPersona 
+
+datosDe :: String ->Persona
+datosDe unNombre = find (tieneNombre unNombre) discotequers
+
+esDeMarca :: Nombre -> Bebida -> Bool
+esDeMarca unaMarca unaBebida = ((==unaMarca) . bebida) unaBebida 
+
+graduacionAlcoholica :: String ->  Number
+graduacionAlcoholica unaMarca  = (graduacion . find (esDeMarca unaMarca)) bebidas
+
+nivelAlcoholPorTrago :: (String,Number) -> Number
+nivelAlcoholPorTrago (unTrago,unaCantidad) = ((* unaCantidad) . graduacionAlcoholica) unTrago
+
+alcoholEnSangreDe :: String -> Number
+alcoholEnSangreDe unNombre = (sum . map nivelAlcoholPorTrago . tragos . datosDe) unNombre
+
+estaBorracho :: String -> Bool
+estaBorracho unNombre =  ((< alcoholEnSangreDe unNombre) . aguante . datosDe) unNombre
+
+
+levanteReal :: String -> Number
+levanteReal unNombre | estaBorracho unNombre =  (-) ((levante . datosDe) unNombre) ((alcoholEnSangreDe) unNombre)
+                     | otherwise = (+) ((levante . datosDe) unNombre) ((alcoholEnSangreDe) unNombre)
+
+quienEsMejor :: (Ord a) => (Persona -> a) -> Nombre -> Nombre -> Nombre
+quienEsMejor criterio unNombre otroNombre | (criterio . datosDe) unNombre > (criterio . datosDe) otroNombre = unNombre
+                                          | otherwise = otroNombre
+
+cantidadTragos = snd
+
+tomoMasVariedad :: Nombre -> Nombre -> String
+tomoMasVariedad unaPersona otraPersona = quienEsMejor (length . tragos) unaPersona otraPersona 
+
+tomoMasCantidad :: Nombre -> Nombre -> String
+tomoMasCantidad unaPersona otraPersona = quienEsMejor  (sum . map cantidadTragos . tragos) unaPersona otraPersona
+
+estaOrdenada _ [a] = True
+estaOrdenada criterio (x:y:ys) | criterio x < criterio y = estaOrdenada criterio (y:ys)
+                               | otherwise = False
+
+estaRoto :: String -> Bool
+estaRoto unNombre = ((>1).length.tragos.datosDe) unNombre
+
+estoEsUnDescontrol :: [Persona] -> Bool
+estoEsUnDescontrol listaPersonas = all (estaRoto.nombre) listaPersonas
+
+-- funcionHeavy :: a -> [a] -> (a -> Bool) -> (a -> a) -> [a]
+

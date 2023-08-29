@@ -1,0 +1,47 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Elemento = UnElemento { 
+tipo :: String,
+ataque :: (Personaje-> Personaje),
+defensa :: (Personaje-> Personaje) } deriving (Show,Eq)
+
+data Personaje = UnPersonaje { 
+nombre :: String,
+salud :: Number,
+elementos :: [Elemento],
+anioPresente :: Number } deriving(Show,Eq)
+
+mandarAlAnio anio unPersonaje = unPersonaje{anioPresente = anio}
+
+
+meditar unPersonaje = unPersonaje{salud = (salud unPersonaje) * 1.5}
+
+
+bajaVida salud danio = max 0 (salud - danio)
+
+
+causarDanio danio unPersonaje = unPersonaje{salud = bajaVida (salud unPersonaje) danio}
+
+
+
+esMalvado unPersonaje = (any (== "Malvado").map tipo.elementos) unPersonaje
+
+danioQueProduce unPersonaje unElemento = bajaVida (salud unPersonaje) (salud $ ( ataque unElemento unPersonaje))
+
+matanAlPersonaje unPersonaje unElemento =  0 == bajaVida (salud unPersonaje) (salud ((ataque unElemento) unPersonaje))
+
+esEnemigoMortal unPersonaje unEnemigo = (any (matanAlPersonaje unPersonaje).elementos) unEnemigo
+
+enemigosMortales unPersonaje unaListaEnemigos = filter (esEnemigoMortal unPersonaje) unaListaEnemigos
+
+katanaMagica = UnElemento "Magia" (causarDanio 1000) 
+
+jack = UnPersonaje "Jack" 300 [] 200
+
+NO TERMINADO 
+
+
+
+

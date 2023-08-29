@@ -1,0 +1,64 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Pais = Pais{
+ipr :: Number,
+activaPublico :: Number,
+activaPrivado ::Number,
+recursos :: [String],
+deudaEnMillones :: Number
+} deriving (Show,Eq)
+
+type Estrategia = Pais -> Pais
+
+type Receta = [Estrategia]
+operacionPorcentual :: Number -> Number -> Number
+operacionPorcentual total porcentaje = (total * (porcentaje/100))
+
+prestarMillones :: Number -> Estrategia
+prestarMillones unPrestamo unPais = unPais {deudaEnMillones = (deudaEnMillones unPais) + operacionPorcentual unPrestamo 150}
+
+restar :: Number -> Number -> Number
+restar n1 n2 = max (n1 - n2) 0
+
+reducirSectorPublico :: Number -> Estrategia
+reducirSectorPublico reduccion unPais | ((>100).activaPublico) unPais = unPais{activaPublico = restar (activaPublico unPais) reduccion, ipr = (deudaEnMillones unPais) - operacionPorcentual (deudaEnMillones unPais) 20}
+                                      | otherwise = unPais {activaPublico = restar (activaPublico unPais) reduccion, ipr = (deudaEnMillones unPais) - operacionPorcentual (deudaEnMillones unPais) 15}
+
+cederEmpresa :: String -> [String] -> [String]
+cederEmpresa recurso recursos = filter (/= recurso) recursos
+
+empresaFMI :: String -> Estrategia
+empresaFMI recurso unPais = unPais{deudaEnMillones = restar (deudaEnMillones unPais) 20, recursos = cederEmpresa recurso (recursos unPais)}
+
+pbi :: Pais -> Number
+pbi unPais = (ipr unPais) * ((activaPrivado unPais) + (activaPublico unPais))
+
+estableceBlindaje :: Estrategia
+estableceBlindaje unPais = unPais {deudaEnMillones = (deudaEnMillones unPais) + ((pbi unPais)/2),activaPublico = restar (activaPublico unPais) 500}
+
+namibia :: Pais
+namibia = Pais 4140 400000 650000 ["Mineria","Ecoturismo"] 50
+
+implementarEstrategia :: Estrategia -> Estrategia
+implementarEstrategia unaEstrategia unPais = unaEstrategia unPais
+
+receta1 :: Receta
+receta1 = [prestarMillones 200,empresaFMI "Mineria"]
+
+paisesZafan :: [Pais] -> [Pais]
+paisesZafan listaPaises = filter( elem "Petroleo" . recursos) listaPaises
+
+deudaConFMI :: [Pais] -> Number
+deudaConFMI listaPaises = (sum . map deudaEnMillones) listaPaises
+
+aplicarReceta :: Receta -> Pais -> Pais
+aplicarReceta unaReceta unPais = foldl (flip implementarEstrategia) unPais unaReceta
+
+pbiIncrementa unPais primeraReceta segundaReceta = (pbi . aplicarReceta primeraReceta) unPais < (pbi . aplicarReceta segundaReceta) unPais
+
+ordenDePeorAMejor unPais [receta] = True
+
+ordenDePeorAMejor unPais (x:y:ys) | pbiIncrementa unPais x y = ordenDePeorAMejor unPais (y:ys)
+                                  | otherwise = False

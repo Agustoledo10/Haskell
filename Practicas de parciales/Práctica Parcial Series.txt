@@ -1,0 +1,105 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+import Prelude (Float)
+
+data Actor = Actor {
+nombreActor :: String,
+sueldoPretendido :: Number,
+restriccionesTrabajo :: [String]
+} deriving (Show,Eq)
+
+data Serie = Serie{
+nombreSerie :: String,
+castSerie :: [Actor],
+presupuestoAnual :: Number,
+cantidadTemporadas :: Number,
+ratingPromedio :: Number,
+estaCancelada :: Bool
+} deriving (Show,Eq)
+
+johnnyDepp :: Actor
+johnnyDepp = Actor "Johnny Depp" 20000000 []
+
+helenaBonhamCarter :: Actor
+helenaBonhamCarter = Actor "Helena Bonham Carter" 15000000 []
+
+gastoEnSueldos :: Serie -> Number
+gastoEnSueldos unaSerie = (sum . map sueldoPretendido . castSerie) unaSerie
+
+estaRojo :: Serie -> Bool
+estaRojo unaSerie = presupuestoAnual unaSerie < gastoEnSueldos unaSerie 
+
+actoresProblematicos :: Number -> Serie -> [Actor]
+actoresProblematicos unNumero unaSerie = (filter ((>unNumero).length.restriccionesTrabajo) . castSerie) unaSerie
+
+esProblematica :: Serie -> Bool
+esProblematica unaSerie = 3 < (length . actoresProblematicos 1) unaSerie
+
+type Productor = Serie -> Serie
+
+conFavoritismos :: Actor -> Actor -> Productor
+conFavoritismos unActorFavorito otroActorFavorito unaSerie = unaSerie {castSerie = [unActorFavorito,otroActorFavorito] ++ (drop 2 . castSerie) unaSerie}
+
+timBurton :: Productor
+timBurton unaSerie = conFavoritismos  johnnyDepp helenaBonhamCarter unaSerie 
+
+gatoPardeitor :: Productor
+gatoPardeitor = id
+
+estireitor :: Productor
+estireitor unaSerie = unaSerie { cantidadTemporadas = ((*2).cantidadTemporadas) unaSerie }
+
+desespereitor :: [Productor] -> Productor
+desespereitor listaIdeas unaSerie = foldl (flip ($)) unaSerie listaIdeas
+
+canceleitor :: Number -> Productor
+canceleitor unaCifra unaSerie | estaRojo unaSerie || ((<unaCifra) . ratingPromedio) unaSerie = unaSerie {estaCancelada = True}
+                              | otherwise =  unaSerie
+
+bienestarReparto :: Serie -> Number
+bienestarReparto unaSerie | ((<10).length.castSerie) unaSerie = 3
+                          | otherwise = max 2 (10 - (length .  (actoresProblematicos 0)) unaSerie)
+
+bienestarTemporadas :: Serie -> Number
+bienestarTemporadas unaSerie | ((>4).cantidadTemporadas) unaSerie = 5
+                             | otherwise = (10 - (cantidadTemporadas unaSerie)) * 2
+
+
+bienestar :: Serie -> Number
+bienestar unaSerie | estaCancelada unaSerie = 0
+                   | otherwise = bienestarTemporadas unaSerie + bienestarReparto unaSerie
+
+mejorProductor :: [Serie] -> [Productor] -> [Serie]
+mejorProductor listaSerie listaProductores = map (emplearProductor listaProductores) listaSerie
+
+maximoSegun _ [a] = a
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                       | otherwise = maximoSegun f (y:ys)
+
+productorIndicado :: [Productor] -> Serie -> Productor
+productorIndicado listaProductores unaSerie = maximoSegun (bienestar . flip ($) unaSerie) listaProductores
+
+emplearProductor :: [Productor] -> Serie -> Serie
+emplearProductor listaProductores unaSerie = (productorIndicado listaProductores unaSerie ) unaSerie
+
+-- cuando hay una lista infinita de actores, no se puede aplicar el gatopardeitor pues devuelve la misma serie con una lista inf de actores, lo cual no puede mostrarse x pantalla
+
+-- para aplicar con favoritismo se puede emplear sin mostrar en pantalla
+
+estaOrdenada [x] = True
+estaOrdenada (x:y:ys) | x < y = False
+                      | otherwise = estaOrdenada (y:ys)
+
+serieControvertida :: Serie -> Bool
+serieControvertida unaSerie = (not . estaOrdenada . map sueldoPretendido . castSerie) unaSerie
+
+-- funcionLoca :: (Number -> Number) -> (a -> [b]) -> [a] -> [Number]
+
+funcionLoca x y = filter (even.x) . map (length.y)
+
+
+
+
+
+

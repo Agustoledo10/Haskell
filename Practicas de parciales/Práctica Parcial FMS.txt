@@ -1,0 +1,203 @@
+ module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Palabra = String
+type Verso = String
+type Estrofa = [Verso]
+type Artista = String -- Solamente interesa el nombre
+ 
+esVocal :: Char -> Bool
+esVocal = flip elem "aeiou"
+ 
+tieneTilde :: Char -> Bool
+tieneTilde = flip elem "áéíóú"
+ 
+ 
+cumplen :: (a -> b) -> (b -> b -> Bool) -> a -> a -> Bool
+cumplen f comp v1 v2 = comp (f v1) (f v2)
+
+
+sonDiferentes :: Palabra -> Palabra -> Bool
+sonDiferentes unaPalabra otraPalabra = unaPalabra /= otraPalabra
+
+listaVocales :: [Char]
+listaVocales = ['a','e','i','o','u']
+
+ultimasN :: Number -> Palabra -> Palabra
+ultimasN cantidad = reverse . take cantidad . reverse
+
+esVocalPosibilidades :: Char -> Bool
+esVocalPosibilidades unaLetra = esVocal unaLetra || tieneTilde unaLetra
+
+ultimasVocales :: Palabra -> Palabra
+ultimasVocales unaPalabra = (ultimasN 2. filter (esVocalPosibilidades)) unaPalabra 
+
+ultimasLetras :: Palabra -> Palabra
+ultimasLetras unaPalabra = (ultimasN 3) unaPalabra
+
+rimaAsonante :: Palabra -> Palabra -> Bool
+rimaAsonante unaPalabra otraPalabra = ultimasVocales unaPalabra == ultimasVocales otraPalabra
+
+rimaConsonante :: Palabra -> Palabra -> Bool
+rimaConsonante unaPalabra otraPalabra = ultimasLetras unaPalabra == ultimasLetras otraPalabra
+
+generanRima :: Palabra -> Palabra -> Bool
+generanRima unaPalabra otraPalabra = rimaAsonante unaPalabra otraPalabra || rimaConsonante unaPalabra otraPalabra 
+
+riman :: Palabra -> Palabra -> Bool
+riman unaPalabra otraPalabra = sonDiferentes unaPalabra otraPalabra && generanRima unaPalabra otraPalabra
+
+-- "Test palabras con ultimas dos vocales iguales y ultimas tres letras iguales" / True -- funcion y cancion
+-- "Test palabras con ultimas dos vocales iguales y ultimas tres letras distintas" / True -- parcial y estirar
+-- "Test palabras con ultimas dos vocales diferentes y ultimas tres letras iguales" / True -- hostil y gentil 
+-- "Test palabras con ultimas dos vocales diferentes y ultimas tres letras diferentes" / True -- auto cerro
+
+primerVerso :: [Verso] -> Verso
+primerVerso versos =  head versos
+
+segundoVerso :: [Verso] -> Verso
+segundoVerso versos = last versos
+
+conjugacionRimas :: [Verso] -> Bool
+conjugacionRimas versos = riman ((last . words . primerVerso) versos) ((last . words . segundoVerso) versos)
+
+conjugacionAnadiplosis :: [Verso] -> Bool
+conjugacionAnadiplosis versos = (last . words . primerVerso) versos == (head . words . segundoVerso) versos
+
+conjuganVersos :: ([Verso] -> Bool) -> [Verso] -> Bool
+conjuganVersos unaConjugacion versos = unaConjugacion versos
+
+versosEspecificados :: Number -> Number -> [Verso] -> [Verso]
+versosEspecificados posEstrofa1 posEstrofa2 versos = [((!!) versos (posEstrofa1-1))] ++ [((!!) versos (posEstrofa2-1))]
+
+patronSimple :: Number -> Number -> [Verso] -> Bool
+patronSimple posEstrofa1 posEstrofa2 versos = (conjuganVersos conjugacionRimas. versosEspecificados posEstrofa1 posEstrofa2) versos
+
+estaAcentuada :: Char -> Bool
+estaAcentuada unaVocal = elem unaVocal ['á','é','í','ó','ú']
+
+esEsdrujula :: Palabra -> Bool
+esEsdrujula unaPalabra = (estaAcentuada . head . ultimasN 3. filter (esVocalPosibilidades)) unaPalabra 
+
+terminaEnEsdrujula :: Verso -> Bool
+terminaEnEsdrujula unVerso = (esEsdrujula . last . words) unVerso
+
+patronEsdrujulas :: [Verso] -> Bool
+patronEsdrujulas versos = all (terminaEnEsdrujula) versos
+
+empiezaCon :: Palabra -> Verso -> Bool
+empiezaCon unaPalabra unVerso = ((== unaPalabra).head . words) unVerso 
+
+patronAnafora :: [Verso] -> Bool
+patronAnafora versos = all (empiezaCon ((head . words . primerVerso) versos)) versos
+
+patronCadena :: [Verso] -> Bool
+patronCadena [x] = True
+patronCadena (x:y:xs) | (last . words) x == (head . words) y = patronCadena (y:xs)
+                      | otherwise = False
+
+combinaDos :: ([Verso] -> Bool) -> ([Verso] -> Bool) -> [Verso] -> Bool
+combinaDos patron1 patron2 versos = patron1 versos && patron2 versos
+
+aabb :: [Verso] -> Bool
+aabb = combinaDos (patronSimple 1 2) (patronSimple 3 4)
+
+abab :: [Verso] -> Bool
+abab = combinaDos (patronSimple 1 3) (patronSimple 2 4)
+
+abba :: [Verso] -> Bool
+abba = combinaDos (patronSimple 1 4) (patronSimple 2 3)
+
+hardcore :: [Verso] -> Bool
+hardcore = combinaDos patronCadena patronEsdrujulas
+
+data PuestaEscena = PuestaEscena{
+publicoExaltado :: Bool,
+potencia :: Number,
+estrofa :: Estrofa,
+artista :: Artista
+} deriving (Show,Eq)
+
+aumentoPorcentual :: Number -> Number -> Number
+aumentoPorcentual unPorcentaje unTotal = unTotal + (((/100).(*unPorcentaje)) unTotal)
+
+type Estilo = PuestaEscena -> PuestaEscena
+
+gritar :: PuestaEscena -> PuestaEscena
+gritar unaPE = unaPE { potencia = aumentoPorcentual 50 (potencia unaPE)}
+
+esEfectivo :: Number -> Bool
+esEfectivo unaEfectividad = unaEfectividad > 50
+
+responderAcote :: Number -> PuestaEscena -> PuestaEscena
+responderAcote unaEfectividad unaPE | esEfectivo unaEfectividad = unaPE {potencia = aumentoPorcentual 20 (potencia unaPE),publicoExaltado = True}
+                                    | otherwise = unaPE
+
+tirarTecnincas :: ([Verso] -> Bool) -> PuestaEscena -> PuestaEscena
+tirarTecnincas unPatron unaPE | unPatron (estrofa unaPE) = unaPE {potencia = aumentoPorcentual 10 (potencia unaPE),publicoExaltado = True}
+                              | otherwise = unaPE {potencia = aumentoPorcentual 10 (potencia unaPE)}
+
+seApropiaDeLaEscena :: Estrofa -> Artista -> PuestaEscena -> PuestaEscena
+seApropiaDeLaEscena unaEstrofa unArtista unaPuestaEscena = unaPuestaEscena {estrofa = unaEstrofa,artista = unArtista}
+
+puestaInicial :: PuestaEscena
+puestaInicial = PuestaEscena False 1 [] ""
+
+tiraFreesytle :: Artista -> Estrofa -> Estilo -> PuestaEscena -> PuestaEscena
+tiraFreesytle unArtista unaEstrofa unEstilo unaPuestaEscena = (unEstilo . seApropiaDeLaEscena unaEstrofa unArtista) unaPuestaEscena
+
+--Criterio -> PuestaEscena -> Number
+
+criterioAlToke1 :: PuestaEscena -> Number
+criterioAlToke1 unaPuestaEscena | aabb (estrofa unaPuestaEscena) = 0.5
+                                | otherwise = 0
+
+criterioAlToke2 :: PuestaEscena -> Number
+criterioAlToke2 unaPuestaEscena | combinaDos patronEsdrujulas (patronSimple 1 4) (estrofa unaPuestaEscena) = 1
+                                | otherwise = 0
+
+criterioAlToke3 :: PuestaEscena -> Number
+criterioAlToke3 unaPuestaEscena | publicoExaltado unaPuestaEscena = 1
+                                | otherwise = 0
+
+criterioAlToke4 :: PuestaEscena -> Number
+criterioAlToke4 unaPuestaEscena | ((>1.5).potencia) unaPuestaEscena = 2
+                                | otherwise = 0
+
+alToke = [criterioAlToke1,criterioAlToke2,criterioAlToke3,criterioAlToke4]
+
+type Criterio = PuestaEscena -> Number
+
+type Jurado = [Criterio]
+
+puntajeDaJurado :: Jurado -> PuestaEscena -> Number
+puntajeDaJurado unJurado unaPuestaEscena = (sum . map (flip ($) unaPuestaEscena)) unJurado
+
+puntaje :: Jurado -> PuestaEscena -> Number
+puntaje unJurado unaPuestaEscena = max 3 (puntajeDaJurado unJurado unaPuestaEscena)
+
+--escenaInicialModificada :: PuestaEscena -> Estilo -> PuestaEscena
+--escenaInicialModificada unaPuestaEnEscena estilo1 = tiraFreesytle (artista unaPuestaEnEscena) (estrofa unaPuestaEnEscena) (estilo1) puestaInicial
+
+
+
+--sucedeBatalla puestasEnEscena1 puestasEnEscena2 estilo1 estilo2 =  zipWith (sucesionPuestas) ([escenaInicialModificada head puestasEnEscena1] ++ (drop 1 puestasEnEscena1)) puestaEnEscena2 
+
+--resultadoBatalla :: Artista -> Artista -> Estilo -> Estilo -> [PuestaEscena] -> [PuestaEscena] -> [Jurado] -> Artista
+--resultadoBatalla 
+
+juradoPuntuaLista :: [PuestaEscena] -> Jurado -> Number
+juradoPuntuaLista listaPuestas unJurado = (sum . map (puntaje unJurado)) listaPuestas
+
+puntajeObtenido ::  (Artista,[PuestaEscena]) -> [Jurado] -> Number
+puntajeObtenido unCompetidor listaJurados = (sum . map (juradoPuntuaLista (snd unCompetidor))) listaJurados
+
+ganadorBatalla :: (Artista,[PuestaEscena]) -> (Artista,[PuestaEscena]) -> [Jurado] -> String
+ganadorBatalla primerCompetidor segundoCompetidor listaJurados | puntajeObtenido primerCompetidor listaJurados > puntajeObtenido segundoCompetidor listaJurados = fst primerCompetidor
+                                                               | otherwise = fst segundoCompetidor
+
+
+
+
+

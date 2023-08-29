@@ -1,0 +1,100 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Gema = Personaje -> Personaje
+
+data Personaje = Personaje {
+edad :: Number,
+energia :: Number,
+habilidades :: [String],
+nombre :: String,
+planeta :: String
+} deriving (Show,Eq)
+
+data Guantelete = Guantelete {
+material :: String,
+gemas :: [Gema]
+} deriving (Show,Eq)
+
+type Universo = [Personaje]
+
+estaCompleto :: Guantelete -> Bool
+estaCompleto unGuantelente = ((=="uru") . material) unGuantelente && ((==6).length.gemas) unGuantelente
+
+mitadUniverso :: Universo -> Number
+mitadUniverso unUniverso = div (length unUniverso) 2 
+
+reducirUniverso :: Universo -> Universo
+reducirUniverso unUniverso = take (mitadUniverso unUniverso) unUniverso
+
+chasquidoGuantelente :: Guantelete -> Universo -> Universo
+chasquidoGuantelente unGuantelente unUniverso | estaCompleto unGuantelente = reducirUniverso unUniverso
+                                              | otherwise = unUniverso
+
+universoAptoPdx :: Universo -> Bool
+universoAptoPdx unUniverso = any ((<45).edad) unUniverso
+
+energiaTotal :: Universo -> Number
+energiaTotal unUniverso = (sum . map energia .filter ((>1).length.habilidades)) unUniverso
+
+modificarEnergia :: Number -> Gema
+modificarEnergia unNumero unPersonaje = unPersonaje {energia = (energia unPersonaje) - unNumero}
+
+gemaMente :: Number -> Gema
+gemaMente unNumero unPersonaje = modificarEnergia unNumero unPersonaje
+
+quitarHabilidad :: String -> Gema
+quitarHabilidad unaHabilidad unPersonaje = unPersonaje { habilidades = filter (/= unaHabilidad) (habilidades unPersonaje)}
+
+gemaAlma :: String -> Gema
+gemaAlma unaHabilidad unPersonaje = ((modificarEnergia 10).quitarHabilidad unaHabilidad) unPersonaje
+
+transportarPlaneta :: String -> Gema
+transportarPlaneta unPlaneta unPersonaje = unPersonaje { planeta = unPlaneta}
+
+gemaEspacio :: String -> Gema
+gemaEspacio unPlaneta unPersonaje = ((modificarEnergia 20).transportarPlaneta unPlaneta) unPersonaje
+
+quitarHabilidades :: Gema
+quitarHabilidades unPersonaje = unPersonaje{habilidades = []}
+
+gemaPoder :: Gema
+gemaPoder unPersonaje | ((<=2).length.habilidades) unPersonaje = ((modificarEnergia (energia unPersonaje)).quitarHabilidades) unPersonaje
+                       | otherwise = modificarEnergia (energia unPersonaje) unPersonaje
+
+reducirEdad :: Gema
+reducirEdad unPersonaje = unPersonaje {edad = max (div (edad unPersonaje) 2) 18}
+
+gemaTiempo :: Gema
+gemaTiempo unPersonaje = ((modificarEnergia 50).reducirEdad) unPersonaje
+
+gemaLoca :: Gema -> Gema
+gemaLoca unaGema unPersonaje = (unaGema . unaGema) unPersonaje
+
+aplicarGema :: Gema -> Gema
+aplicarGema unaGema unPersonaje = unaGema unPersonaje
+
+guanteleteEjemplo :: Guantelete
+guanteleteEjemplo = Guantelete "goma" [gemaTiempo, gemaAlma "usar Mjolnir", gemaLoca (gemaAlma "programacion en Haskell")]
+
+utilizarGemas:: Personaje -> [Gema] -> Personaje
+utilizarGemas unaVictima listaGemas = foldl (flip aplicarGema) unaVictima listaGemas
+
+maximoSegun f [a] = a 
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                       | otherwise = maximoSegun f (y:ys)
+
+perdidaEnergia unPersonaje unaGema = (energia unPersonaje) - (energia. aplicarGema unaGema) unPersonaje
+
+gemaMasPoderosa :: [Gema] -> Personaje -> Gema
+gemaMasPoderosa listaGemas unPersonaje = maximoSegun (perdidaEnergia unPersonaje) listaGemas 
+
+-- la funcion gemaMasPoderosa no puede ser empleada pues siempre buscara una gema con mayor poder, dentro de un conjunto infinito, por lo que la respuesta es inconclusa
+-- la funcion usoLasTresPrimerasGemas puede ser empleada ya que si bien el conjunto de gemas es infinito, Haskell funciona hace uso de su caracteristica evaluacion lazy, por medio de la cual obtiene lo necesario sin evaluar toda la lista
+
+
+
+
+
+

@@ -1,0 +1,119 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+import Prelude (Float)
+
+type Artefacto = (String,Number)
+
+type Tarea = Heroe -> Heroe
+
+type Debilidad = (Heroe -> Bool)
+
+type Labor = [Tarea]
+
+data Heroe = Heroe {
+epiteto :: String,
+reconocimiento :: Number,
+artefactos :: [Artefacto],
+tareas :: [Tarea]
+} deriving (Show,Eq)
+
+data Bestia = Bestia {
+nombreBestia :: String,
+debilidad :: Debilidad
+} deriving (Show,Eq)
+
+nombreArtefacto :: Artefacto -> String
+nombreArtefacto = fst
+
+rarezaArtefacto :: Artefacto -> Number
+rarezaArtefacto  = snd
+
+cambiarEpiteto :: String -> Heroe -> Heroe
+cambiarEpiteto unEpiteto unHeroe = unHeroe {epiteto = unEpiteto}
+
+lanzaDelOlimpo :: Artefacto
+lanzaDelOlimpo = ("Lanza Del Olimpo",100)
+
+xiphos :: Artefacto
+xiphos = ("Xiphos",50)
+
+relampagoZeus :: Artefacto
+relampagoZeus = ("Relampago de Zeus",500)
+
+debilidadLeonNemea :: Debilidad
+debilidadLeonNemea unHeroe = ((>=20).length.epiteto) unHeroe
+
+leonNemea :: Bestia
+leonNemea = Bestia "Leon De Nemea" debilidadLeonNemea 
+
+agregarArtefactos :: [Artefacto] -> Heroe -> Heroe
+agregarArtefactos listaArtefactos unHeroe = unHeroe {artefactos = (artefactos unHeroe) ++ listaArtefactos}
+
+pasaALaHistoria :: Heroe -> Heroe
+pasaALaHistoria unHeroe | ((>1000) . reconocimiento) unHeroe = cambiarEpiteto "El mitico" unHeroe
+                        | ((>= 500) . reconocimiento) unHeroe = (agregarArtefactos [lanzaDelOlimpo]  . cambiarEpiteto "El magnifico") unHeroe
+                        | ((<500) . reconocimiento) unHeroe = (agregarArtefactos [xiphos] . cambiarEpiteto "Hoplita") unHeroe
+                        | otherwise = unHeroe
+
+modificarReconocimiento :: (Number -> Number) -> Heroe -> Heroe
+modificarReconocimiento unaModificacion unHeroe = unHeroe {reconocimiento = (unaModificacion . reconocimiento) unHeroe }
+
+encontrarArtefacto :: Artefacto -> Tarea
+encontrarArtefacto unArtefacto unHeroe = agregarArtefactos [unArtefacto] . modificarReconocimiento (+(rarezaArtefacto unArtefacto)) $ unHeroe
+
+triplicarRareza :: Artefacto -> Artefacto
+triplicarRareza unArtefacto = (fst unArtefacto,(*3).rarezaArtefacto $ unArtefacto)
+
+artefactosOlimpicos :: Heroe -> Heroe
+artefactosOlimpicos unHeroe = unHeroe { artefactos = filter ((<1000).rarezaArtefacto) . map triplicarRareza . artefactos $ unHeroe}
+
+escalarElOlimpo :: Tarea
+escalarElOlimpo unHeroe = agregarArtefactos [relampagoZeus] . artefactosOlimpicos . modificarReconocimiento (+500) $ unHeroe
+
+groso :: Number -> String
+groso cantCuadras = "Groso" ++ (take cantCuadras . repeat $ 'o')
+
+ayudaACruzar :: Number -> Tarea
+ayudaACruzar cantCuadras unHeroe = cambiarEpiteto (groso cantCuadras) unHeroe
+
+pierdeArtefactos :: Number -> Heroe -> Heroe
+pierdeArtefactos unaCantidad unHeroe = unHeroe { artefactos = (drop 1 . artefactos) unHeroe}
+
+matarBestia :: Bestia -> Tarea
+matarBestia unaBestia unHeroe | (debilidad unaBestia) unHeroe = cambiarEpiteto ("El asesino de " ++ (nombreBestia unaBestia)) unHeroe
+                              | otherwise = ( pierdeArtefactos 1 . cambiarEpiteto "El cobarde") unHeroe
+
+matarLeonNemea :: Tarea
+matarLeonNemea = matarBestia leonNemea   
+
+heracles :: Heroe
+heracles = Heroe "Guardian del Olimpos" 700 [("pistola",1000),relampagoZeus] [matarLeonNemea]
+
+haceTarea :: Tarea -> Tarea
+haceTarea unaTarea unHeroe = unaTarea unHeroe
+
+mayorSegun f a b | f a > f b = a
+                 | otherwise = b 
+
+menorSegun f a b | f a < f b = a
+                 | otherwise = b
+
+realizarTareas :: Labor -> Heroe -> Heroe
+realizarTareas listaTareas unHeroe = foldl (flip ($)) unHeroe listaTareas
+
+presumen :: Heroe -> Heroe -> (Heroe,Heroe)
+presumen unHeroe otroHeroe | (reconocimiento unHeroe )/= (reconocimiento otroHeroe) = (mayorSegun reconocimiento unHeroe otroHeroe,menorSegun reconocimiento unHeroe otroHeroe)
+                           | (sum . map rarezaArtefacto . artefactos $ unHeroe) /= (sum . map rarezaArtefacto . artefactos $ otroHeroe) = (mayorSegun (sum . map rarezaArtefacto . artefactos) unHeroe otroHeroe,menorSegun (sum . map rarezaArtefacto . artefactos) unHeroe otroHeroe)
+                           | otherwise = presumen (realizarTareas (tareas otroHeroe) unHeroe) (realizarTareas (tareas unHeroe) otroHeroe) 
+                        
+-- dado que tienen igualdad en las condiciones decisivas de sumatoria de artefactos y reconocimiento, la funcion regresa a si misma, sin embargo sus nuevos parametros seran los mismo puesto que el foldl con una lista vacia de funciones a aplicar a la semilla,
+-- devuelve la semilla en si, entonces entra en un bucle infinito sin resolucion  
+
+-- si se realizan tareas con una lista infinita de tareas, no habra resultado puesto que la funcion se quedara evaluando el proximo estado del heroe constantemente 
+
+
+
+
+
+

@@ -1,0 +1,628 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Animal = Animal{
+iq :: Number,
+especie :: String,
+capacidades :: [String]
+} deriving (Show,Eq)
+
+inteligenciaSuperior :: Number -> Animal -> Animal
+inteligenciaSuperior unNumero unAnimal = unAnimal { iq = (iq unAnimal) + unNumero}
+
+pinkificar :: Animal -> Animal
+pinkificar unAnimal = unAnimal { capacidades = []}
+
+superpoderes :: Animal -> Animal
+superpoderes unAnimal | ((=="elefante").especie) unAnimal = unAnimal { capacidades = (capacidades unAnimal) ++ ["no tenerle miedo a los ratones"]}
+                      | ((=="raton").especie) unAnimal && ((>100).iq) unAnimal = unAnimal { capacidades = (capacidades unAnimal) ++ ["hablar"]}
+                      | otherwise = unAnimal
+
+puedeHablar :: Animal -> Bool
+puedeHablar unAnimal = elem "hablar" (capacidades unAnimal)
+
+coefMayorA :: Number -> Animal -> Bool
+coefMayorA unNumero unAnimal = ((>unNumero).iq) unAnimal
+
+antropomorfico :: Animal -> Bool
+antropomorfico unAnimal = puedeHablar unAnimal && coefMayorA 60 unAnimal
+
+vocales = ['a','e','i','o','u']
+
+esVocal :: Char -> Bool
+esVocal unCaracter = elem unCaracter vocales 
+
+palabraPinkiesca :: String -> Bool
+palabraPinkiesca unString = ((<=4).length) unString && any (esVocal) unString
+
+pinkiesco :: String -> Bool
+pinkiesco unString = ((=="hacer").head.words) unString && (palabraPinkiesca.head.tail.words) unString
+
+noTanCuerdo :: Animal -> Bool
+noTanCuerdo unAnimal = ((>2).length.filter (pinkiesco).capacidades) unAnimal
+
+data Experimento = Experimento{
+transformaciones :: [Animal -> Animal],
+criterio :: Animal -> Bool
+}
+
+hacerTransformaciones :: Experimento -> Animal -> Animal
+hacerTransformaciones unExperimento unAnimal = foldl (flip ($)) unAnimal (transformaciones unExperimento)
+
+experimentoExitoso :: Experimento -> Animal -> Bool
+experimentoExitoso unExperimento unAnimal = (criterio unExperimento) $ (hacerTransformaciones unExperimento unAnimal)
+
+ratonEj :: Animal
+ratonEj = Animal 17 "raton" ["destrengloir el mundo","hacer planes desalmados"]
+
+transformacionesEj :: [Animal -> Animal]
+transformacionesEj = [pinkificar,inteligenciaSuperior 10, superpoderes]
+
+ejemploConsulta = experimentoExitoso (Experimento transformacionesEj antropomorfico) ratonEj
+
+realizarReportes :: (Animal -> a) -> ([String] -> Animal -> Bool) -> [Animal] -> [String] -> Experimento -> [a]
+realizarReportes unApartado cuantas listaAnimales listaHabilidades unExperimento = (map unApartado.filter (cuantas listaHabilidades) . map (hacerTransformaciones unExperimento)) listaAnimales
+
+pertenece :: [String] -> String -> Bool
+pertenece listaHabilidades unaHabilidad = elem unaHabilidad listaHabilidades
+
+tieneAlguna :: [String] -> Animal -> Bool
+tieneAlguna listaHabilidades unAnimal = any (pertenece listaHabilidades) (capacidades unAnimal)
+
+tieneTodas :: [String] -> Animal -> Bool
+tieneTodas listaHabilidades unAnimal = all (pertenece listaHabilidades) (capacidades unAnimal)
+
+noTieneNinguna :: [String] -> Animal -> Bool
+noTieneNinguna listaHabilidades unAnimal = (not.any (pertenece listaHabilidades)) (capacidades unAnimal)
+
+reporte1 = realizarReportes iq tieneAlguna
+
+reporte2 = realizarReportes especie tieneTodas
+
+reporte3 = realizarReportes (length.capacidades) noTieneNinguna
+
+ 
+
+
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Animal = Animal{
+iq :: Number,
+especie :: String,
+capacidades :: [String]
+} deriving (Show,Eq)
+
+inteligenciaSuperior :: Number -> Animal -> Animal
+inteligenciaSuperior unNumero unAnimal = unAnimal { iq = (iq unAnimal) + unNumero}
+
+pinkificar :: Animal -> Animal
+pinkificar unAnimal = unAnimal { capacidades = []}
+
+superpoderes :: Animal -> Animal
+superpoderes unAnimal | ((=="elefante").especie) unAnimal = unAnimal { capacidades = (capacidades unAnimal) ++ ["no tenerle miedo a los ratones"]}
+                      | ((=="raton").especie) unAnimal && ((>100).iq) unAnimal = unAnimal { capacidades = (capacidades unAnimal) ++ ["hablar"]}
+                      | otherwise = unAnimal
+
+puedeHablar :: Animal -> Bool
+puedeHablar unAnimal = elem "hablar" (capacidades unAnimal)
+
+coefMayorA :: Number -> Animal -> Bool
+coefMayorA unNumero unAnimal = ((>unNumero).iq) unAnimal
+
+antropomorfico :: Animal -> Bool
+antropomorfico unAnimal = puedeHablar unAnimal && coefMayorA 60 unAnimal
+
+vocales = ['a','e','i','o','u']
+
+esVocal :: Char -> Bool
+esVocal unCaracter = elem unCaracter vocales 
+
+palabraPinkiesca :: String -> Bool
+palabraPinkiesca unString = ((<=4).length) unString && any (esVocal) unString
+
+pinkiesco :: String -> Bool
+pinkiesco unString = ((=="hacer").head.words) unString && (palabraPinkiesca.head.tail.words) unString
+
+noTanCuerdo :: Animal -> Bool
+noTanCuerdo unAnimal = ((>2).length.filter (pinkiesco).capacidades) unAnimal
+
+data Experimento = Experimento{
+transformaciones :: [Animal -> Animal],
+criterio :: Animal -> Bool
+}
+
+hacerTransformaciones :: Experimento -> Animal -> Animal
+hacerTransformaciones unExperimento unAnimal = foldl (flip ($)) unAnimal (transformaciones unExperimento)
+
+experimentoExitoso :: Experimento -> Animal -> Bool
+experimentoExitoso unExperimento unAnimal = (criterio unExperimento) $ (hacerTransformaciones unExperimento unAnimal)
+
+ratonEj :: Animal
+ratonEj = Animal 17 "raton" ["destrengloir el mundo","hacer planes desalmados"]
+
+transformacionesEj :: [Animal -> Animal]
+transformacionesEj = [pinkificar,inteligenciaSuperior 10, superpoderes]
+
+ejemploConsulta = experimentoExitoso (Experimento transformacionesEj antropomorfico) ratonEj
+
+realizarReportes :: (Animal -> a) -> ([String] -> Animal -> Bool) -> [Animal] -> [String] -> Experimento -> [a]
+realizarReportes unApartado cuantas listaAnimales listaHabilidades unExperimento = (map unApartado.filter (cuantas listaHabilidades) . map (hacerTransformaciones unExperimento)) listaAnimales
+
+pertenece :: [String] -> String -> Bool
+pertenece listaHabilidades unaHabilidad = elem unaHabilidad listaHabilidades
+
+tieneAlguna :: [String] -> Animal -> Bool
+tieneAlguna listaHabilidades unAnimal = any (pertenece listaHabilidades) (capacidades unAnimal)
+
+tieneTodas :: [String] -> Animal -> Bool
+tieneTodas listaHabilidades unAnimal = all (pertenece listaHabilidades) (capacidades unAnimal)
+
+noTieneNinguna :: [String] -> Animal -> Bool
+noTieneNinguna listaHabilidades unAnimal = (not.any (pertenece listaHabilidades)) (capacidades unAnimal)
+
+reporte1 = realizarReportes iq tieneAlguna
+
+reporte2 = realizarReportes especie tieneTodas
+
+reporte3 = realizarReportes (length.capacidades) noTieneNinguna
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Animal = Animal{
+iq :: Number,
+especie :: String,
+capacidades :: [String]
+} deriving (Show,Eq)
+
+inteligenciaSuperior :: Number -> Animal -> Animal
+inteligenciaSuperior unNumero unAnimal = unAnimal { iq = (iq unAnimal) + unNumero}
+
+pinkificar :: Animal -> Animal
+pinkificar unAnimal = unAnimal { capacidades = []}
+
+superpoderes :: Animal -> Animal
+superpoderes unAnimal | ((=="elefante").especie) unAnimal = unAnimal { capacidades = (capacidades unAnimal) ++ ["no tenerle miedo a los ratones"]}
+                      | ((=="raton").especie) unAnimal && ((>100).iq) unAnimal = unAnimal { capacidades = (capacidades unAnimal) ++ ["hablar"]}
+                      | otherwise = unAnimal
+
+puedeHablar :: Animal -> Bool
+puedeHablar unAnimal = elem "hablar" (capacidades unAnimal)
+
+coefMayorA :: Number -> Animal -> Bool
+coefMayorA unNumero unAnimal = ((>unNumero).iq) unAnimal
+
+antropomorfico :: Animal -> Bool
+antropomorfico unAnimal = puedeHablar unAnimal && coefMayorA 60 unAnimal
+
+vocales = ['a','e','i','o','u']
+
+esVocal :: Char -> Bool
+esVocal unCaracter = elem unCaracter vocales 
+
+palabraPinkiesca :: String -> Bool
+palabraPinkiesca unString = ((<=4).length) unString && any (esVocal) unString
+
+pinkiesco :: String -> Bool
+pinkiesco unString = ((=="hacer").head.words) unString && (palabraPinkiesca.head.tail.words) unString
+
+noTanCuerdo :: Animal -> Bool
+noTanCuerdo unAnimal = ((>2).length.filter (pinkiesco).capacidades) unAnimal
+
+data Experimento = Experimento{
+transformaciones :: [Animal -> Animal],
+criterio :: Animal -> Bool
+}
+
+hacerTransformaciones :: Experimento -> Animal -> Animal
+hacerTransformaciones unExperimento unAnimal = foldl (flip ($)) unAnimal (transformaciones unExperimento)
+
+experimentoExitoso :: Experimento -> Animal -> Bool
+experimentoExitoso unExperimento unAnimal = (criterio unExperimento) $ (hacerTransformaciones unExperimento unAnimal)
+
+ratonEj :: Animal
+ratonEj = Animal 17 "raton" ["destrengloir el mundo","hacer planes desalmados"]
+
+transformacionesEj :: [Animal -> Animal]
+transformacionesEj = [pinkificar,inteligenciaSuperior 10, superpoderes]
+
+ejemploConsulta = experimentoExitoso (Experimento transformacionesEj antropomorfico) ratonEj
+
+realizarReportes :: (Animal -> a) -> ([String] -> Animal -> Bool) -> [Animal] -> [String] -> Experimento -> [a]
+realizarReportes unApartado cuantas listaAnimales listaHabilidades unExperimento = (map unApartado.filter (cuantas listaHabilidades) . map (hacerTransformaciones unExperimento)) listaAnimales
+
+pertenece :: [String] -> String -> Bool
+pertenece listaHabilidades unaHabilidad = elem unaHabilidad listaHabilidades
+
+tieneAlguna :: [String] -> Animal -> Bool
+tieneAlguna listaHabilidades unAnimal = any (pertenece listaHabilidades) (capacidades unAnimal)
+
+tieneTodas :: [String] -> Animal -> Bool
+tieneTodas listaHabilidades unAnimal = all (pertenece listaHabilidades) (capacidades unAnimal)
+
+noTieneNinguna :: [String] -> Animal -> Bool
+noTieneNinguna listaHabilidades unAnimal = (not.any (pertenece listaHabilidades)) (capacidades unAnimal)
+
+reporte1 = realizarReportes iq tieneAlguna
+
+reporte2 = realizarReportes especie tieneTodas
+
+reporte3 = realizarReportes (length.capacidades) noTieneNinguna
+
+ 
+
+
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Animal = Animal{
+iq :: Number,
+especie :: String,
+capacidades :: [String]
+} deriving (Show,Eq)
+
+inteligenciaSuperior :: Number -> Animal -> Animal
+inteligenciaSuperior unNumero unAnimal = unAnimal { iq = (iq unAnimal) + unNumero}
+
+pinkificar :: Animal -> Animal
+pinkificar unAnimal = unAnimal { capacidades = []}
+
+superpoderes :: Animal -> Animal
+superpoderes unAnimal | ((=="elefante").especie) unAnimal = unAnimal { capacidades = (capacidades unAnimal) ++ ["no tenerle miedo a los ratones"]}
+                      | ((=="raton").especie) unAnimal && ((>100).iq) unAnimal = unAnimal { capacidades = (capacidades unAnimal) ++ ["hablar"]}
+                      | otherwise = unAnimal
+
+puedeHablar :: Animal -> Bool
+puedeHablar unAnimal = elem "hablar" (capacidades unAnimal)
+
+coefMayorA :: Number -> Animal -> Bool
+coefMayorA unNumero unAnimal = ((>unNumero).iq) unAnimal
+
+antropomorfico :: Animal -> Bool
+antropomorfico unAnimal = puedeHablar unAnimal && coefMayorA 60 unAnimal
+
+vocales = ['a','e','i','o','u']
+
+esVocal :: Char -> Bool
+esVocal unCaracter = elem unCaracter vocales 
+
+palabraPinkiesca :: String -> Bool
+palabraPinkiesca unString = ((<=4).length) unString && any (esVocal) unString
+
+pinkiesco :: String -> Bool
+pinkiesco unString = ((=="hacer").head.words) unString && (palabraPinkiesca.head.tail.words) unString
+
+noTanCuerdo :: Animal -> Bool
+noTanCuerdo unAnimal = ((>2).length.filter (pinkiesco).capacidades) unAnimal
+
+data Experimento = Experimento{
+transformaciones :: [Animal -> Animal],
+criterio :: Animal -> Bool
+}
+
+hacerTransformaciones :: Experimento -> Animal -> Animal
+hacerTransformaciones unExperimento unAnimal = foldl (flip ($)) unAnimal (transformaciones unExperimento)
+
+experimentoExitoso :: Experimento -> Animal -> Bool
+experimentoExitoso unExperimento unAnimal = (criterio unExperimento) $ (hacerTransformaciones unExperimento unAnimal)
+
+ratonEj :: Animal
+ratonEj = Animal 17 "raton" ["destrengloir el mundo","hacer planes desalmados"]
+
+transformacionesEj :: [Animal -> Animal]
+transformacionesEj = [pinkificar,inteligenciaSuperior 10, superpoderes]
+
+ejemploConsulta = experimentoExitoso (Experimento transformacionesEj antropomorfico) ratonEj
+
+realizarReportes :: (Animal -> a) -> ([String] -> Animal -> Bool) -> [Animal] -> [String] -> Experimento -> [a]
+realizarReportes unApartado cuantas listaAnimales listaHabilidades unExperimento = (map unApartado.filter (cuantas listaHabilidades) . map (hacerTransformaciones unExperimento)) listaAnimales
+
+pertenece :: [String] -> String -> Bool
+pertenece listaHabilidades unaHabilidad = elem unaHabilidad listaHabilidades
+
+tieneAlguna :: [String] -> Animal -> Bool
+tieneAlguna listaHabilidades unAnimal = any (pertenece listaHabilidades) (capacidades unAnimal)
+
+tieneTodas :: [String] -> Animal -> Bool
+tieneTodas listaHabilidades unAnimal = all (pertenece listaHabilidades) (capacidades unAnimal)
+
+noTieneNinguna :: [String] -> Animal -> Bool
+noTieneNinguna listaHabilidades unAnimal = (not.any (pertenece listaHabilidades)) (capacidades unAnimal)
+
+reporte1 = realizarReportes iq tieneAlguna
+
+reporte2 = realizarReportes especie tieneTodas
+
+reporte3 = realizarReportes (length.capacidades) noTieneNinguna
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Animal = Animal{
+iq :: Number,
+especie :: String,
+capacidades :: [String]
+} deriving (Show,Eq)
+
+inteligenciaSuperior :: Number -> Animal -> Animal
+inteligenciaSuperior unNumero unAnimal = unAnimal { iq = (iq unAnimal) + unNumero}
+
+pinkificar :: Animal -> Animal
+pinkificar unAnimal = unAnimal { capacidades = []}
+
+superpoderes :: Animal -> Animal
+superpoderes unAnimal | ((=="elefante").especie) unAnimal = unAnimal { capacidades = (capacidades unAnimal) ++ ["no tenerle miedo a los ratones"]}
+                      | ((=="raton").especie) unAnimal && ((>100).iq) unAnimal = unAnimal { capacidades = (capacidades unAnimal) ++ ["hablar"]}
+                      | otherwise = unAnimal
+
+puedeHablar :: Animal -> Bool
+puedeHablar unAnimal = elem "hablar" (capacidades unAnimal)
+
+coefMayorA :: Number -> Animal -> Bool
+coefMayorA unNumero unAnimal = ((>unNumero).iq) unAnimal
+
+antropomorfico :: Animal -> Bool
+antropomorfico unAnimal = puedeHablar unAnimal && coefMayorA 60 unAnimal
+
+vocales = ['a','e','i','o','u']
+
+esVocal :: Char -> Bool
+esVocal unCaracter = elem unCaracter vocales 
+
+palabraPinkiesca :: String -> Bool
+palabraPinkiesca unString = ((<=4).length) unString && any (esVocal) unString
+
+pinkiesco :: String -> Bool
+pinkiesco unString = ((=="hacer").head.words) unString && (palabraPinkiesca.head.tail.words) unString
+
+noTanCuerdo :: Animal -> Bool
+noTanCuerdo unAnimal = ((>2).length.filter (pinkiesco).capacidades) unAnimal
+
+data Experimento = Experimento{
+transformaciones :: [Animal -> Animal],
+criterio :: Animal -> Bool
+}
+
+hacerTransformaciones :: Experimento -> Animal -> Animal
+hacerTransformaciones unExperimento unAnimal = foldl (flip ($)) unAnimal (transformaciones unExperimento)
+
+experimentoExitoso :: Experimento -> Animal -> Bool
+experimentoExitoso unExperimento unAnimal = (criterio unExperimento) $ (hacerTransformaciones unExperimento unAnimal)
+
+ratonEj :: Animal
+ratonEj = Animal 17 "raton" ["destrengloir el mundo","hacer planes desalmados"]
+
+transformacionesEj :: [Animal -> Animal]
+transformacionesEj = [pinkificar,inteligenciaSuperior 10, superpoderes]
+
+ejemploConsulta = experimentoExitoso (Experimento transformacionesEj antropomorfico) ratonEj
+
+realizarReportes :: (Animal -> a) -> ([String] -> Animal -> Bool) -> [Animal] -> [String] -> Experimento -> [a]
+realizarReportes unApartado cuantas listaAnimales listaHabilidades unExperimento = (map unApartado.filter (cuantas listaHabilidades) . map (hacerTransformaciones unExperimento)) listaAnimales
+
+pertenece :: [String] -> String -> Bool
+pertenece listaHabilidades unaHabilidad = elem unaHabilidad listaHabilidades
+
+tieneAlguna :: [String] -> Animal -> Bool
+tieneAlguna listaHabilidades unAnimal = any (pertenece listaHabilidades) (capacidades unAnimal)
+
+tieneTodas :: [String] -> Animal -> Bool
+tieneTodas listaHabilidades unAnimal = all (pertenece listaHabilidades) (capacidades unAnimal)
+
+noTieneNinguna :: [String] -> Animal -> Bool
+noTieneNinguna listaHabilidades unAnimal = (not.any (pertenece listaHabilidades)) (capacidades unAnimal)
+
+reporte1 = realizarReportes iq tieneAlguna
+
+reporte2 = realizarReportes especie tieneTodas
+
+reporte3 = realizarReportes (length.capacidades) noTieneNinguna
+
+ 
+
+
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Animal = Animal{
+iq :: Number,
+especie :: String,
+capacidades :: [String]
+} deriving (Show,Eq)
+
+inteligenciaSuperior :: Number -> Animal -> Animal
+inteligenciaSuperior unNumero unAnimal = unAnimal { iq = (iq unAnimal) + unNumero}
+
+pinkificar :: Animal -> Animal
+pinkificar unAnimal = unAnimal { capacidades = []}
+
+superpoderes :: Animal -> Animal
+superpoderes unAnimal | ((=="elefante").especie) unAnimal = unAnimal { capacidades = (capacidades unAnimal) ++ ["no tenerle miedo a los ratones"]}
+                      | ((=="raton").especie) unAnimal && ((>100).iq) unAnimal = unAnimal { capacidades = (capacidades unAnimal) ++ ["hablar"]}
+                      | otherwise = unAnimal
+
+puedeHablar :: Animal -> Bool
+puedeHablar unAnimal = elem "hablar" (capacidades unAnimal)
+
+coefMayorA :: Number -> Animal -> Bool
+coefMayorA unNumero unAnimal = ((>unNumero).iq) unAnimal
+
+antropomorfico :: Animal -> Bool
+antropomorfico unAnimal = puedeHablar unAnimal && coefMayorA 60 unAnimal
+
+vocales = ['a','e','i','o','u']
+
+esVocal :: Char -> Bool
+esVocal unCaracter = elem unCaracter vocales 
+
+palabraPinkiesca :: String -> Bool
+palabraPinkiesca unString = ((<=4).length) unString && any (esVocal) unString
+
+pinkiesco :: String -> Bool
+pinkiesco unString = ((=="hacer").head.words) unString && (palabraPinkiesca.head.tail.words) unString
+
+noTanCuerdo :: Animal -> Bool
+noTanCuerdo unAnimal = ((>2).length.filter (pinkiesco).capacidades) unAnimal
+
+data Experimento = Experimento{
+transformaciones :: [Animal -> Animal],
+criterio :: Animal -> Bool
+}
+
+hacerTransformaciones :: Experimento -> Animal -> Animal
+hacerTransformaciones unExperimento unAnimal = foldl (flip ($)) unAnimal (transformaciones unExperimento)
+
+experimentoExitoso :: Experimento -> Animal -> Bool
+experimentoExitoso unExperimento unAnimal = (criterio unExperimento) $ (hacerTransformaciones unExperimento unAnimal)
+
+ratonEj :: Animal
+ratonEj = Animal 17 "raton" ["destrengloir el mundo","hacer planes desalmados"]
+
+transformacionesEj :: [Animal -> Animal]
+transformacionesEj = [pinkificar,inteligenciaSuperior 10, superpoderes]
+
+ejemploConsulta = experimentoExitoso (Experimento transformacionesEj antropomorfico) ratonEj
+
+realizarReportes :: (Animal -> a) -> ([String] -> Animal -> Bool) -> [Animal] -> [String] -> Experimento -> [a]
+realizarReportes unApartado cuantas listaAnimales listaHabilidades unExperimento = (map unApartado.filter (cuantas listaHabilidades) . map (hacerTransformaciones unExperimento)) listaAnimales
+
+pertenece :: [String] -> String -> Bool
+pertenece listaHabilidades unaHabilidad = elem unaHabilidad listaHabilidades
+
+tieneAlguna :: [String] -> Animal -> Bool
+tieneAlguna listaHabilidades unAnimal = any (pertenece listaHabilidades) (capacidades unAnimal)
+
+tieneTodas :: [String] -> Animal -> Bool
+tieneTodas listaHabilidades unAnimal = all (pertenece listaHabilidades) (capacidades unAnimal)
+
+noTieneNinguna :: [String] -> Animal -> Bool
+noTieneNinguna listaHabilidades unAnimal = (not.any (pertenece listaHabilidades)) (capacidades unAnimal)
+
+reporte1 = realizarReportes iq tieneAlguna
+
+reporte2 = realizarReportes especie tieneTodas
+
+reporte3 = realizarReportes (length.capacidades) noTieneNinguna
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

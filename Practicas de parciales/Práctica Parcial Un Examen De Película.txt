@@ -1,0 +1,109 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Pelicula = Pelicula{
+nombrePelicula :: String,
+reparto :: [String],
+duracion:: Number,
+estreno :: Number
+} deriving (Show,Eq)
+
+taxi = Pelicula "Taxi driver"["De Niro", "Foster"] 113 1976
+machete = Pelicula "Machete" ["De Niro", "Rodriguez"] 105 2010
+hp = Pelicula "Harry Potter 9" ["Watson", "Radcliffe", "Grint"] 252 2015
+
+--1
+
+trabajo :: String -> Pelicula -> Bool
+trabajo nombreActor unaPelicula = elem nombreActor (reparto unaPelicula)
+
+--2 mayoria de un genero, es decir si los del genero son mas que la mitad del total
+
+todosLosActores = [("comedia", ["Carrey", "Grint", "Stiller"]),("accion", ["Stallone", "Willis","Schwarzenegger"]), ("drama", ["De Niro", "Foster"])]
+
+esGenero unGenero otroGenero = unGenero == (fst otroGenero)
+
+encontrar unGenero otroGenero = (head . filter (esGenero unGenero)) otroGenero
+
+esDeGenero unGenero unActor = (elem unActor . snd . encontrar unGenero) todosLosActores
+
+cantidadDeGenero unGenero unaPelicula = (length . filter (esDeGenero unGenero) . reparto ) unaPelicula
+
+esActorDeGenero :: String -> Pelicula -> Bool
+esActorDeGenero unGenero unaPelicula = cantidadDeGenero unGenero unaPelicula > div (length (reparto unaPelicula)) 2
+
+--3
+
+type Premio = Pelicula -> Bool
+
+tresSonMultitud :: Premio
+tresSonMultitud unaPelicula = (==3) . length . reparto $ unaPelicula
+
+clasicoSetentista :: Premio
+clasicoSetentista unaPelicula = ((>=1970) . estreno ) unaPelicula && ((<=1979) . estreno ) unaPelicula
+
+plomo :: Premio
+plomo unaPelicula = ((>=180) . duracion) unaPelicula
+
+n = [1..]
+
+esDigito :: Char -> Bool
+esDigito caracter = elem caracter (show n)
+
+zaga :: Premio
+zaga unaPelicula = (esDigito . last . nombrePelicula) unaPelicula
+
+--4
+
+data Cine = Cine{
+nombreCine :: String,
+stats :: [(Pelicula,Number)]
+} deriving (Show,Eq)
+
+cp = Cine "Cineplex" [(hp, 5000), (machete, 4000), (hp, 1000)]
+hoyts = Cine "Hoyts Abasto" [(taxi, 2000)]
+
+coincideNombre :: String -> (Pelicula,Number) -> Bool
+coincideNombre nombrePeli unaSala = nombrePeli == ((nombrePelicula . fst) unaSala)
+
+cuantosVieron :: String -> Cine -> Number 
+cuantosVieron nombrePeli unCine = (sum . map snd . filter (coincideNombre nombrePeli)) (stats unCine)
+
+ganoPremio :: Premio -> (Pelicula,Number) -> Bool
+ganoPremio unPremio unaSala = unPremio (fst unaSala)
+
+cuantosVieronGanadoras :: Premio -> Cine -> Number
+cuantosVieronGanadoras unPremio unCine = (sum . map snd . filter (ganoPremio unPremio)) (stats unCine)
+
+contieneActor :: String -> (Pelicula,Number) -> Bool
+contieneActor nombreActor unaSala = elem nombreActor ((reparto . fst) unaSala)
+
+cuantosVieronActor :: String -> Cine -> Number
+cuantosVieronActor unActor unCine = (sum . map snd . filter (contieneActor unActor)) (stats unCine)
+
+--5
+
+cannes :: [Premio]
+cannes = [plomo, clasicoSetentista]
+
+berlin :: [Premio]
+berlin = [tresSonMultitud,zaga,clasicoSetentista]
+
+cuantosPremiosRecibe :: [Premio] -> Pelicula -> Number 
+cuantosPremiosRecibe unFestival unaPelicula = (length . filter (flip ($) unaPelicula) ) unFestival
+
+clasicoCuarentistas :: Premio
+clasicoCuarentistas unaPelicula = ((>=1940) . estreno ) unaPelicula && ((<=1949) . estreno ) unaPelicula
+
+clasicoSesentistas :: Premio
+clasicoSesentistas unaPelicula = ((>=1960) . estreno ) unaPelicula && ((<=1969) . estreno ) unaPelicula
+
+mdp :: [Premio]
+mdp = [clasicoSesentistas, clasicoCuarentistas, plomo, zaga]
+
+premioXActor :: String -> Premio 
+premioXActor nombreActor unaPelicula = elem (nombreActor) (reparto unaPelicula)
+
+avellaneda :: [Premio]
+avellaneda = [premioXActor "Darin", premioXActor "Suar"]

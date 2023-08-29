@@ -1,0 +1,69 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Cliente = Cliente {
+nombreCliente :: String,
+zona :: String
+} deriving (Show,Eq)
+
+data Fecha = Fecha {
+dia :: Number,
+mes :: Number,
+anio :: Number
+} deriving (Show,Eq)
+
+data Viaje = Viaje{
+fecha :: Fecha,
+cliente :: Cliente,
+costo :: Number
+} deriving (Show,Eq)
+
+data Chofer = Chofer{
+nombreChofer :: String,
+kmViajados :: Number,
+viajesTomados :: [Viaje],
+condicion :: Viaje -> Bool
+} deriving (Show,Eq)
+
+cualqViaje :: Viaje -> Bool
+cualqViaje unViaje = True
+
+viajesCosto200 :: Viaje -> Bool
+viajesCosto200 unViaje = ((>200).costo) unViaje
+
+viajesSegunNombre :: Number -> Viaje -> Bool
+viajesSegunNombre cantLetras unViaje = ((>cantLetras) . length . nombreCliente . cliente) unViaje
+
+viajeSegunZona :: String -> Viaje -> Bool
+viajeSegunZona unaZona unViaje = ( (/= unaZona) . zona . cliente) unViaje 
+
+tomaViaje :: Chofer -> Viaje -> Bool
+tomaViaje unChofer unViaje = (condicion unChofer) unViaje
+
+viaje1 = Viaje (Fecha 20 4 2017) lucas 150
+
+lucas = Cliente "Lucas" "Victoria"
+
+daniel = Chofer "Daniel" 23500 [viaje1] (viajeSegunZona "Olivos")
+
+alejandra = Chofer "Alejandra" 180000 [] cualqViaje
+
+liquidacionChofer :: Chofer -> Number
+liquidacionChofer unChofer = (sum . map costo . viajesTomados) unChofer
+
+choferesAceptan :: Viaje -> [Chofer] -> [Chofer]
+choferesAceptan unViaje listaChoferes = filter (flip (tomaViaje) unViaje) listaChoferes
+
+menorCantViajes listaChoferes = (minimum . map length . map viajesTomados ) listaChoferes
+
+tieneMenorCantViajes numero unChofer = ((== numero) . length . viajesTomados) unChofer
+
+choferMenosViajes listaChoferes = (head . filter (tieneMenorCantViajes (menorCantViajes listaChoferes))) listaChoferes
+
+incorporarViaje unViaje unChofer = unChofer {viajesTomados = (viajesTomados unChofer) ++ [unViaje]}
+
+realizarViaje :: Viaje -> [Chofer] -> Chofer
+realizarViaje unViaje listaChoferes =  (incorporarViaje unViaje . choferMenosViajes . choferesAceptan unViaje) listaChoferes
+
+

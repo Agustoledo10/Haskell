@@ -1,0 +1,170 @@
+-- dominar el mundo con nada
+sumarSegun :: (a -> Number) -> [a] -> Number
+sumarSegun unaFuncion unaLista = (foldl (+) 0 . map unaFuncion) unaLista
+
+esMultiploDe unNumero otroNumero = ((==0) . mod unNumero) otroNumero
+
+esMultiploO unNumero otroNumero | esMultiploDe unNumero otroNumero = 0
+                                | otherwise = unNumero
+
+esMultiploDeAlguno :: Number -> [Number] -> Bool
+esMultiploDeAlguno unNumero unaLista = ((==0) . foldl (esMultiploO) unNumero) unaLista
+
+maximoYConcat :: [Number] -> [Number] -> [Number]
+maximoYConcat listNotas listaAux = listaAux ++ [maximum listNotas]
+
+mejoresNotas :: [[Number]] -> [Number]
+mejoresNotas notasXCurso = (reverse . foldr maximoYConcat []) notasXCurso
+
+aprobo :: [Number] -> Bool
+aprobo listaNotas = ((>=4) . foldl min 4) listaNotas
+
+aplicarEIncorporar :: a -> (a -> b) -> [b] -> [b]
+aplicarEIncorporar unValor unaFuncion listaAux = [(unaFuncion unValor)] ++ listaAux 
+
+pam :: [(a->b)] -> a -> [b]
+pam listaFunciones unValor = foldr (aplicarEIncorporar unValor) [] listaFunciones
+
+mantengoPrimero :: a -> a -> a
+mantengoPrimero primero segundo = primero
+
+cabeza :: [a] -> a
+cabeza listaValores = foldl1 mantengoPrimero listaValores
+
+evaluarCond :: (a -> Bool) -> a -> [a] -> [a]
+evaluarCond unaCondicion unValor listaAux | unaCondicion unValor = [unValor] ++ listaAux
+                                          | otherwise = listaAux
+
+filtrar :: (a -> Bool) -> [a] -> [a]
+filtrar unaCondicion listaValores = foldr (evaluarCond unaCondicion) [] listaValores
+
+mayorSegun :: (a -> Number) -> a -> a -> a
+mayorSegun f valor1 valor2  |  (f valor1) > (f valor2) = valor1
+                            | otherwise = valor2
+
+maximoSegun :: (a -> Number) -> [a] -> a
+maximoSegun unaFuncion unaLista = foldl1 (mayorSegun unaFuncion) unaLista
+
+operarYConcat :: (a -> b -> c) -> (a,b) -> [c] -> [c]
+operarYConcat unaFuncion parValores listaAux = [unaFuncion (fst parValores) (snd parValores)] ++ listaAux 
+
+
+aparearCon :: (a -> b -> c) -> [a] -> [b] -> [c]
+aparearCon unaFuncion unaLista otraLista = (foldr (operarYConcat unaFuncion) [] . zip unaLista) otraLista
+
+-- Práctica Evaluación Diferida 
+
+positivosYNegativos :: [Number] -> [Number]
+positivosYNegativos listaNumeros = concatMap (\unNumero -> [unNumero , (-unNumero)]) listaNumeros
+
+ciclar :: [a] -> [a]
+ciclar unaLista = unaLista ++ (ciclar unaLista)
+
+cuentoDeLaBuenaPipa = ["Te cuento el cuento de la buena pipa"] ++ (cycle ["Sí","Pero, te cuento el cuento de la buena pipa"])
+
+repetirPalabras :: String -> [String]
+repetirPalabras unaPalabra = zipWith (++) (repeat unaPalabra) ( map show [1..])
+
+primeroQueCumple cond valor funcion = (head . filter cond . iterate funcion) valor
+
+todosLosMultiplosDe unNumero = map (*unNumero) [1..]
+
+mcm unNumero otroNumero = (head . filter (flip (esMultiploDe) otroNumero) . todosLosMultiplosDe) unNumero
+
+-- Recursividad
+
+fibonacci 0 = 0
+fibonacci 1 = 1 
+fibonacci 2 = 1
+fibonacci n = fibonacci (n -1) + fibonacci (n -2)
+
+pertenece [] _ = False
+pertenece (x:xs) elm | elm == x = True
+                    | otherwise = pertenece xs elm
+
+
+interseccion [] _ = []
+interseccion (x:xs) (y:ys) | elem x (y:ys) =  (x:interseccion xs (y:ys))
+                           | otherwise =  interseccion xs (y:ys)
+
+transformadaLoca [] = []
+
+transformadaLoca (x:xs) | x > 19 = transformadaLoca xs
+                        | x < 19 && even x =  (x+2:transformadaLoca xs)
+                        | x < 19 && odd x = (x+1:transformadaLoca xs)
+                        | x == 19 = (x:transformadaLoca xs)
+
+productoria [] = 0
+productoria [e] = e 
+productoria (x:ys) = x * productoria ys
+
+maximo [a] = a 
+maximo (x:y:ys) | x > y = maximo (x:ys)
+                | otherwise = maximo (y:ys)
+
+
+menoresA :: Number -> [Number] -> [Number] 
+menoresA _ [] = []
+
+menoresA numero (x:xs) | numero > x = (x: menoresA numero xs)
+                       | otherwise = menoresA numero xs
+
+diferencias [a] = []
+
+diferencias (x:y:ys) = (abs (x - y):diferencias (y:ys))
+
+sinRepetidos :: Eq a => [a] -> [a]
+
+sinRepetidos [a] = [a]
+
+sinRepetidos (x:xs) | elem x xs = sinRepetidos xs
+                    | otherwise = (x:sinRepetidos xs)
+
+promedios [] = []
+promedios [[a]] = [a]
+promedios (x:xs) = (sum x / length x: promedios xs)
+
+alVesre [a] = [a]
+alVesre (x:xs) = alVesre xs ++ [x]
+
+filtrar2 _ [] = []
+
+filtrar2 cond (x:xs) | cond x = (x: filtrar cond xs)
+                     | otherwise = filtrar cond xs
+
+aparearCon2 _ [] _ = []
+aparearCon2 _ _ [] = []
+
+aparearCon2 funcion (x:xs) (y:ys) = (funcion x y: aparearCon funcion xs ys)
+
+maximoSegun2 _ [a] = a
+maximoSegun2 f (x:y:ys) | f x > f y = maximoSegun f (x:ys) 
+                       | otherwise = maximoSegun f (y:ys)
+
+aplanar [] = []
+aplanar (x:xs) = x ++ aplanar xs
+
+intercalar _ [e] = [e]
+intercalar elm (x:xs) = (x:elm: intercalar elm xs)
+
+listaSinAplazos lista = filter (>=4) lista
+
+promediosSinAplazos [[]] = []
+promediosSinAplazos [x]= [(sum . listaSinAplazos ) x / (length . listaSinAplazos) x]
+promediosSinAplazos (x:xs) = promediosSinAplazos [x] ++ promediosSinAplazos xs
+
+
+juntarStrings :: String -> [String] -> String
+juntarStrings inter listaStrings = foldl1 (\unString otroString -> unString ++ inter ++ otroString) listaStrings
+
+intersectar l1 l2 = filter (\x -> x elem l2) l1
+
+diferencia l1 l2 = filter (\x -> (not . elem x) l2) l1
+
+hayAlgunMultiploDe2 num l = any (\x -> esMultiploDe x num) l
+
+productos = [("manzana", 50), ("banana", 30), ("naranja", 40), ("papa", 40), ("tomate", 25)]
+
+totalKilosProducto l = foldl (\c (a,b) -> c + b) 0 l
+
+totalKilosProducto2 l = (sum . map (\(a,b) -> b)) l

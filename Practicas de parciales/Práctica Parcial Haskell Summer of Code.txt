@@ -1,0 +1,80 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Propuesta = (String,String,[String],Number)
+
+nombrePersona :: Propuesta -> String
+nombrePersona (nombre,_,_,_) = nombre
+
+nombrePropuesta :: Propuesta -> String
+nombrePropuesta (_,nombre,_,_) = nombre
+
+habilidadPersona :: Propuesta -> [String]
+habilidadPersona (_,_,habilidades,_) = habilidades
+
+aniosExperiencia :: Propuesta -> Number
+aniosExperiencia (_,_,_,anios) = anios
+
+type CriterioVoto = Propuesta -> Number 
+
+type Mentor = (String,[String],CriterioVoto)
+
+criterioMentor :: Mentor -> CriterioVoto
+criterioMentor (_,_,criterio) = criterio
+
+nombreMentor :: Mentor -> String
+nombreMentor (nombre,_,_) = nombre
+
+propuestasMentor :: Mentor -> [String]
+propuestasMentor (_,propuestas,_) = propuestas
+
+proyectoInteresa :: Mentor -> Propuesta -> Number
+proyectoInteresa unMentor unaPropuesta | (elem (nombrePropuesta unaPropuesta) (propuestasMentor unMentor)) = 1
+                                       | otherwise = 0
+
+puntosSegun :: Propuesta -> Mentor -> Number
+puntosSegun unaPropuesta unMentor = proyectoInteresa unMentor unaPropuesta + ((criterioMentor unMentor) unaPropuesta)
+
+ej1 = ("carlono", ["detectorDeParcialesCopiados","mejorarPerformanceDelMotor"], (\propuesta -> (length.habilidadPersona) propuesta + (aniosExperiencia propuesta)))
+
+ej2 = ("franco", "detectorDeParcialesCopiados", ["definicionDeLenguajes", "parsing", "compiladores"],3)
+
+ej3 = ("nicolas",["entornoDeProgramacionHechoEnHaskell", "extensionesDelLenguaje"],((3+).aniosExperiencia))
+
+puntajeTotal :: Propuesta -> [Mentor] -> Number
+puntajeTotal unaPropuesta listaMentores = (sum . map (puntosSegun unaPropuesta)) listaMentores
+
+alumnoHabilidoso :: Propuesta -> Bool
+alumnoHabilidoso unaPropuesta = ((>3) . length . habilidadPersona) unaPropuesta
+
+propuestaConChances :: [Propuesta] -> [Propuesta]
+propuestaConChances listaPropuestas = filter (alumnoHabilidoso) listaPropuestas
+
+type Resultado = (String,String,Number)
+
+obtenerResultados :: [Mentor] -> Propuesta -> Resultado
+obtenerResultados listaMentores unaPropuesta = ((nombrePersona unaPropuesta,nombrePropuesta unaPropuesta,puntajeTotal unaPropuesta listaMentores)) 
+
+ranking :: [Mentor] -> [Propuesta] -> [Resultado]
+ranking listaMentores listaPropuestas = map (obtenerResultados listaMentores) listaPropuestas
+
+proyectoInteresa2 :: Mentor -> Propuesta -> Bool 
+proyectoInteresa2 unMentor unaPropuesta = elem (nombrePropuesta unaPropuesta) (propuestasMentor unMentor)
+
+propuestasDeInteres :: Mentor -> [Propuesta] -> [Propuesta]
+propuestasDeInteres unMentor listaPropuestas = filter (proyectoInteresa2 unMentor) listaPropuestas 
+
+maximoSegun f [a] = a
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                       | otherwise = maximoSegun f (y:ys)
+
+nombreMentorMasInteresadoEn :: Propuesta -> [Mentor] -> String
+nombreMentorMasInteresadoEn unaPropuesta listaMentores = (nombreMentor . maximoSegun (puntosSegun unaPropuesta)) listaMentores
+
+armarTupla :: [Mentor] -> Propuesta -> (String,String,String)
+armarTupla listaMentores unaPropuesta = ((nombrePersona unaPropuesta),(nombreMentorMasInteresadoEn unaPropuesta listaMentores),(nombrePropuesta unaPropuesta))
+
+proyectosElegidos :: [Mentor] -> [Propuesta] -> [(String,String,String)]
+proyectosElegidos listaMentores listaPropuestas = map (armarTupla listaMentores) listaPropuestas
+

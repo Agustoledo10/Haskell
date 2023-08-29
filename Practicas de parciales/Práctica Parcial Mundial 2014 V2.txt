@@ -1,0 +1,98 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Jugador = Jugador{
+nombreJugador :: String,
+edad :: Number,
+promedio :: Number,
+habilidad :: Number,
+cansancio :: Number
+} deriving (Show,Eq)
+
+data Equipo = Equipo {
+nombreEquipo :: String,
+grupo :: Char,
+jugadores :: [Jugador]
+} deriving (Show,Eq)
+
+martin = Jugador "Martin" 26 0.0 50 35.0
+juan = Jugador "Juancho" 30 0.2 50 40.0
+maxi = Jugador "Maxi Lopez" 27 0.4 68 30.0
+
+jonathan = Jugador "Chueco" 20 1.5 80 99.0
+lean = Jugador "Hacha" 23 0.01 50 35.0
+brian = Jugador "Panadero" 21 5 80 15.0
+
+garcia = Jugador "Sargento" 30 1 80 13.0
+messi = Jugador "Pulga" 26 10 99 43.0
+aguero = Jugador "Aguero" 24 5 90 5.0
+
+equipo1 = Equipo "Lo Que Vale Es El Intento" 'F' [martin, juan, maxi]
+losDeSiempre = Equipo  "Los De Siempre" 'F' [jonathan, lean, brian]
+restoDelMundo = Equipo "Resto del Mundo" 'A' [garcia, messi, aguero]
+
+quickSort _ [] = [] 
+quickSort criterio (x:xs) = (quickSort criterio . filter (not . criterio x)) xs  ++ [x] ++ (quickSort criterio . filter (criterio x)) xs 
+
+esFigura :: Jugador -> Bool
+esFigura unJugador = ((>75).habilidad) unJugador && ((>0).promedio) unJugador
+
+figurasEquipo :: Equipo -> [Jugador]
+figurasEquipo unEquipo = (filter (esFigura) . jugadores) unEquipo
+
+jugadoresFaranduleros = ["Maxi Lopez", "Icardi", "Aguero", "Caniggia", "Demichelis"]
+
+esFarandulero :: Jugador -> Bool
+esFarandulero unJugador = elem (nombreJugador unJugador) jugadoresFaranduleros
+
+tieneFarandulero :: Equipo -> Bool
+tieneFarandulero unEquipo = (any (esFarandulero) . jugadores) unEquipo
+
+equiposGrupo :: Char -> [Equipo] -> [Equipo]
+equiposGrupo unGrupo listaEquipos = filter ((== unGrupo).grupo) listaEquipos
+
+esJoven :: Jugador -> Bool
+esJoven unJugador = ((<27).edad) unJugador
+
+esFiguritaDificil :: Jugador -> Bool
+esFiguritaDificil unJugador = esFigura unJugador && (not.esFarandulero) unJugador && esJoven unJugador
+
+figuritasDificles :: Char -> [Equipo] -> [String]
+figuritasDificles unGrupo listaEquipos = ( map nombreJugador . filter(esFiguritaDificil) . concat . map jugadores . equiposGrupo unGrupo) listaEquipos
+
+jugadorJuega :: Jugador -> Jugador
+jugadorJuega unJugador | esFiguritaDificil unJugador = unJugador {cansancio = 50}
+                       | esJoven unJugador = unJugador {cansancio = (cansancio unJugador) + ((cansancio unJugador)*(0.1))}
+                       | (not.esJoven) unJugador && esFigura unJugador = unJugador {cansancio = (cansancio unJugador) + 20}
+                       | otherwise = unJugador {cansancio = (cansancio unJugador)*2}
+
+jugadoresJuegan :: [Jugador] -> [Jugador]
+jugadoresJuegan listaJugadores = map (jugadorJuega) listaJugadores
+
+jugarPartido :: Equipo -> Equipo
+jugarPartido unEquipo = unEquipo {jugadores = jugadoresJuegan (jugadores unEquipo)}
+
+nivelCansancio :: Jugador -> Jugador -> Bool
+nivelCansancio jugador1 jugador2 = cansancio jugador1 < cansancio jugador2
+
+jugadoresMenosCansados :: [Jugador] -> [Jugador]
+jugadoresMenosCansados listaJugadores = (take 11 . quickSort (nivelCansancio)) listaJugadores
+
+mejorPromedio :: Equipo -> Equipo -> Equipo
+mejorPromedio equipoA equipoB | (sum . map promedio . jugadoresMenosCansados .jugadores) equipoA > (sum . map promedio . jugadoresMenosCansados .jugadores) equipoB = equipoA
+                              | otherwise = equipoB
+
+partidoEquipos :: Equipo -> Equipo -> Equipo
+partidoEquipos equipoA equipoB = jugarPartido (mejorPromedio equipoA equipoB)
+ 
+juegaGrupo :: [Equipo] -> Equipo
+juegaGrupo listaEquipos = foldl1 (partidoEquipos) listaEquipos
+
+obtenerGanador equipoGanador listaEquipos = (head . filter (==equipoGanador)) listaEquipos
+
+elGroso :: [Equipo] -> String
+elGroso listaEquipos = (nombreJugador . head . filter (esFigura). jugadores . juegaGrupo) listaEquipos
+
+
+

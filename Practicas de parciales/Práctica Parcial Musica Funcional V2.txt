@@ -1,0 +1,82 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+import Prelude (Float)
+
+type Cancion = [Nota]
+data Nota = Nota {
+tonoHz :: Number, -- Frecuencia medida en Hz
+volumenDb :: Number, -- Volumen de reproducción medido en Db
+duracionSeg :: Number -- Tiempo de reproducción medido en segundos
+} deriving (Eq, Show)
+-- FUNCIONES AUXILIARES
+cambiarVolumen :: (Number -> Number) -> Nota -> Nota
+-- Dada una función transformación y una nota retorna una copia de la
+-- nota con el volumen igual al resultado de aplicar la transformación a
+-- su volumen actual.
+cambiarVolumen delta nota = nota { volumenDb = delta (volumenDb nota) }
+cambiarTono :: (Number -> Number) -> Nota -> Nota
+-- Dada una función transformación y una nota retorna una copia de la
+-- nota con el tono igual al resultado de aplicar la transformación a
+-- su tono actual.
+cambiarTono delta nota = nota { tonoHz = delta (tonoHz nota) }
+cambiarDuracion :: (Number -> Number) -> Nota -> Nota
+-- Dada una función transformación y una nota retorna una copia de la
+-- nota con la duración igual al resultado de aplicar la transformación a
+-- su duración actual.
+cambiarDuracion delta nota = nota { duracionSeg = delta (duracionSeg nota) }
+
+-- Dada una lista de números retorna el valor promedio
+promedio :: [Number] -> Number
+promedio lista = sum lista /  (length lista)
+
+esAudible :: Nota -> Bool
+esAudible unaNota = elem (tonoHz unaNota) [20..20000] && ((>10) . volumenDb) unaNota
+
+esMolesta :: Nota -> Bool
+esMolesta unaNota = esAudible unaNota && ((<250) . tonoHz) unaNota && ((>85). volumenDb) unaNota || esAudible unaNota && ((>=250) . tonoHz) unaNota && ((>55).volumenDb) unaNota 
+
+silencioTotal :: Cancion -> Number
+silencioTotal unaCancion = (sum . map duracionSeg . filter (not.esAudible)) unaCancion
+
+sinInterrupciones :: Cancion -> Bool
+sinInterrupciones unaCancion = (all esAudible . filter ((>0.1) . duracionSeg)) unaCancion
+
+peorMomento :: Cancion -> Number
+peorMomento unaCancion = (maximum . map volumenDb . filter (esMolesta)) unaCancion
+
+type Filtro = Cancion -> Cancion
+
+trasponer :: Number -> Filtro
+trasponer unEscalar unaCancion = map (cambiarTono (*unEscalar)) unaCancion
+
+acotarVolumen :: Number -> Number -> Filtro
+acotarVolumen volMax volMin unaCancion = map  (cambiarVolumen (min volMax . max volMin)) unaCancion
+
+estableceVolumen :: Number -> Number -> Number
+estableceVolumen volNuevo volAnt = volNuevo
+
+normalizar :: Filtro
+normalizar unaCancion = map ( cambiarVolumen $ estableceVolumen (promedio . map volumenDb $ unaCancion)) unaCancion
+
+
+f :: (a -> b -> Bool) -> [(a -> a)] -> a -> b -> Bool
+f g [] y z = g y z
+f g (x : xs) y z = g (x y) z || f g xs y z
+
+infringeCopyRight :: [Filtro] -> Cancion -> Cancion -> Bool
+infringeCopyRight listaFiltros cancionOg cancionSus = f (==) listaFiltros cancionSus cancionOg
+
+-- sonIgualesSegunAlguna
+
+aplicarFiltros :: [Filtro] -> Cancion -> Cancion
+aplicarFiltros listaFiltros unaCancion = foldl (flip ($)) unaCancion listaFiltros
+
+tunear :: [Filtro] -> Cancion -> Cancion
+tunear listaFiltros unaCancion = (normalizar . aplicarFiltros listaFiltros) unaCancion
+
+
+
+
+
+

@@ -1,0 +1,112 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+import Prelude (Float)
+
+type Gema = Personaje -> Personaje
+
+data Personaje = Personaje {
+nombre :: String,
+edad :: Number,
+energia :: Number,
+habilidades :: [String],
+planeta :: String
+} deriving (Show,Eq)
+
+data Guantelete = Guantelete{
+material :: String,
+gemas :: [Gema]
+} deriving (Show,Eq)
+
+type Universo = [Personaje]
+
+guanteleteCompleto :: Guantelete -> Bool
+guanteleteCompleto unGuantelete = ((==6) . length . gemas) unGuantelete
+
+chasquidoUniverso :: Universo -> Guantelete -> Universo
+chasquidoUniverso unUniverso unGuantelete | guanteleteCompleto unGuantelete = take (div (length unUniverso) 2) unUniverso
+                                          | otherwise = unUniverso
+
+esJoven :: Personaje -> Bool
+esJoven unPersonaje = ((<45) . edad) unPersonaje
+
+universoAptoPdx :: Universo -> Bool
+universoAptoPdx unUniverso = any (esJoven) unUniverso
+
+esHabilidoso :: Personaje -> Bool
+esHabilidoso unPersonaje = ((>1) . length . habilidades) unPersonaje
+
+energiaTotal :: Universo -> Number
+energiaTotal unUniverso = (sum . map energia . filter esHabilidoso) unUniverso
+
+disminuirEnergia :: Number -> Number -> Number
+disminuirEnergia unValor unTotal = max 0 (unTotal - unValor)
+
+modificarEnergia :: (Number -> Number) -> Personaje -> Personaje
+modificarEnergia unaModificacion unPersonaje = unPersonaje { energia = (unaModificacion . energia) unPersonaje}
+
+gemaMente :: Number -> Gema
+gemaMente unValor unPersonaje = modificarEnergia (disminuirEnergia unValor) unPersonaje
+
+quitarHabilidad :: String -> Personaje -> Personaje
+quitarHabilidad unaHabilidad unPersonaje = unPersonaje {habilidades = (filter (/= unaHabilidad) . habilidades) unPersonaje}
+
+gemaAlma :: String -> Gema
+gemaAlma unaHabilidad unPersonaje | elem unaHabilidad . habilidades $ unPersonaje = (modificarEnergia (disminuirEnergia 10) . quitarHabilidad unaHabilidad) unPersonaje
+                                  | otherwise = modificarEnergia (disminuirEnergia 10) unPersonaje
+
+transportarPlaneta :: String -> Personaje -> Personaje
+transportarPlaneta unPlaneta unPersonaje = unPersonaje {planeta = unPlaneta}
+
+gemaEspacio :: String -> Gema
+gemaEspacio unPlaneta unPersonaje = (modificarEnergia (disminuirEnergia 20) . transportarPlaneta unPlaneta) unPersonaje
+
+quitarTodasHabilidades :: Personaje -> Personaje
+quitarTodasHabilidades unPersonaje = unPersonaje {habilidades = []}
+
+gemaPoder :: Gema
+gemaPoder unPersonaje | ((<=2) . length . habilidades) unPersonaje = (modificarEnergia (*0) . quitarTodasHabilidades) unPersonaje
+                      | otherwise = modificarEnergia (*0) unPersonaje
+
+reducirEdad :: Personaje -> Personaje
+reducirEdad unPersonaje = unPersonaje {edad = max 18 (div (edad unPersonaje) 2)}
+
+gemaTiempo :: Gema
+gemaTiempo unPersonaje = (modificarEnergia (disminuirEnergia 50) . reducirEdad) unPersonaje
+
+gemaLoca :: Gema -> Gema
+gemaLoca unaGema unPersonaje = (unaGema . unaGema) unPersonaje
+
+guanteleteEjemplo :: Guantelete
+guanteleteEjemplo = Guantelete "goma" [gemaTiempo,(gemaAlma "usar Mjolnir"), gemaLoca (gemaAlma "programacion en Haskell")]
+
+utilizar :: [Gema] -> Personaje -> Personaje
+utilizar listaGemas unPersonaje = foldl (flip ($)) unPersonaje listaGemas
+
+danioInfligido :: Personaje -> Gema -> Number
+danioInfligido unPersonaje unaGema = (energia unPersonaje) - ( energia . unaGema $ unPersonaje)
+
+maximoSegun _ [a] = a
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                       | otherwise = maximoSegun f (y:ys)
+
+gemaMasPoderoso :: Personaje -> Guantelete -> Gema
+gemaMasPoderoso unaVictima unGuantelete = maximoSegun (danioInfligido unaVictima) . gemas $ unGuantelete
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

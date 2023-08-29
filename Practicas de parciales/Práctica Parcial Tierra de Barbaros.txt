@@ -1,0 +1,126 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+import Data.Char
+
+type Objeto = Barbaro -> Barbaro
+
+data Barbaro = Barbaro {
+nombreBarbaro :: String,
+fuerzaBarbaro :: Number,
+habilidadesBarbaro :: [String],
+listaObjetos :: [Objeto]
+} deriving (Show,Eq)
+
+dave = Barbaro "Dave" 100 ["tejer","EscribirPoesia"] [ardilla]
+
+aumentarFuerza :: Number -> Barbaro -> Barbaro
+aumentarFuerza unaCantidad unBarbaro = unBarbaro { fuerzaBarbaro = ((+unaCantidad) . fuerzaBarbaro) unBarbaro}
+
+espada :: Number ->  Objeto
+espada pesoKg unBarbaro = aumentarFuerza (div pesoKg 2) unBarbaro
+
+incorporarHabilidad :: String -> Objeto
+incorporarHabilidad unaHabilidad unBarbaro = unBarbaro {habilidadesBarbaro = (habilidadesBarbaro unBarbaro) ++ [unaHabilidad]}
+
+amuletosMisticos :: String -> Objeto
+amuletosMisticos unaHabilidad unBarbaro = incorporarHabilidad unaHabilidad unBarbaro
+
+ardilla :: Objeto
+ardilla = id
+
+cuerda :: Objeto -> Objeto -> Objeto
+cuerda unObjeto otroObjeto unBarbaro = (unObjeto . otroObjeto) unBarbaro
+
+{--ponerMayusOracion :: String -> String
+ponerMayusOracion [] = []
+ponerMayusOracion (x:xs) | elem x letras = (ponerMayusLetra x:xs)
+                         | otherwise = ponerMayusOracion xs --}
+
+megafono :: Objeto
+megafono unBarbaro = unBarbaro {habilidadesBarbaro =  (\x -> [x]) . map toUpper . concat . habilidadesBarbaro $ unBarbaro}
+
+megafonoBarbarico :: Objeto
+megafonoBarbarico = cuerda ardilla megafono
+
+type Evento = Barbaro -> Bool
+
+type Prueba = Evento
+
+type Aventura = [Evento]
+
+tieneHabilidad :: String -> Barbaro -> Bool
+tieneHabilidad unaHabilidad unBarbaro = (elem unaHabilidad . habilidadesBarbaro) unBarbaro
+
+invasionSuciosDuendes :: Evento
+invasionSuciosDuendes unBarbaro = tieneHabilidad "Escribir Poesia Atroz" unBarbaro
+
+barbarosSinPulgares :: [String]
+barbarosSinPulgares = ["Faffy","Astro"]
+
+cremalleraDelTiempo :: Evento
+cremalleraDelTiempo unBarbaro = (not . elem (nombreBarbaro unBarbaro)) barbarosSinPulgares
+
+pruebaSaqueo :: Prueba
+pruebaSaqueo unBarbaro = tieneHabilidad "robar" unBarbaro && ((>80).fuerzaBarbaro) unBarbaro
+
+poderGrito :: Barbaro -> Number
+poderGrito unBarbaro = (length . concat . habilidadesBarbaro) unBarbaro
+
+pruebaGrito :: Prueba
+pruebaGrito unBarbaro = ((*4) . length . listaObjetos) unBarbaro <= poderGrito unBarbaro
+
+esVocal :: Char -> Bool
+esVocal unaLetra = elem unaLetra "aeiouáéíóú"
+
+tieneMas3Vocales :: String -> Bool
+tieneMas3Vocales unString = ((>3) . length . filter esVocal) unString
+
+mayus = ['A'..'Z']
+
+esMayus :: Char -> Bool
+esMayus unaLetra = elem unaLetra mayus
+
+empiezaConMayus :: String -> Bool
+empiezaConMayus unaHabilidad = (esMayus . head . head . words) unaHabilidad
+
+pruebaCaligrafia :: Prueba
+pruebaCaligrafia unBarbaro = (tieneMas3Vocales . concat . habilidadesBarbaro) unBarbaro && (all empiezaConMayus . habilidadesBarbaro) unBarbaro
+
+ritualDeFechorias :: Evento
+ritualDeFechorias unBarbaro = pasaPruebas any [pruebaSaqueo, pruebaGrito,pruebaCaligrafia] unBarbaro
+
+pasaPrueba :: Barbaro -> Prueba -> Bool
+pasaPrueba unBarbaro unaPrueba = unaPrueba unBarbaro
+
+pasaPruebas :: ((Prueba -> Bool) -> [Prueba] -> Bool) -> [(Barbaro -> Bool)] -> Barbaro -> Bool
+pasaPruebas unCriterio listaPruebas unBarbaro = unCriterio (pasaPrueba unBarbaro) listaPruebas
+
+sobrevivientes :: Aventura -> [Barbaro] -> [Barbaro]
+sobrevivientes unaAventura listaBarbaros = filter (pasaPruebas all unaAventura) listaBarbaros
+
+sinRepetidos :: Eq a => [a] -> [a]
+sinRepetidos [a] = [a]
+sinRepetidos (x:xs) | elem x xs = sinRepetidos xs
+                    | otherwise = (x:sinRepetidos xs)
+
+habilidadesUnicas :: Barbaro -> Barbaro
+habilidadesUnicas unBarbaro = unBarbaro {habilidadesBarbaro = sinRepetidos . habilidadesBarbaro $ unBarbaro}
+
+usarObjetos :: [Objeto] -> Barbaro -> Barbaro
+usarObjetos listaObjetos unBarbaro = foldl (flip ($)) unBarbaro listaObjetos
+
+generacionesUnBarbaro :: Barbaro -> [Barbaro]
+generacionesUnBarbaro unBarbaro = iterate (usarObjetos . listaObjetos $ unBarbaro) (habilidadesUnicas unBarbaro)
+
+descendencia :: Barbaro -> [Barbaro]
+descendencia unBarbaro = zipWith asteriscoGeneracion (generacionesUnBarbaro unBarbaro) [0..]
+
+asteriscos = cycle "*"
+
+asteriscoGeneracion :: Barbaro -> Number -> Barbaro
+asteriscoGeneracion unBarbaro unNumero = unBarbaro {nombreBarbaro = (nombreBarbaro unBarbaro) ++ (take unNumero asteriscos)}
+
+
+
+

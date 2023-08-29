@@ -1,0 +1,81 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+import Prelude (Float)
+
+type Posicion = (Number,Number,Number)
+coordX :: Posicion -> Number
+coordX (x,_,_) = x
+coordY :: Posicion -> Number
+coordY (_,y,_) = y
+coordZ :: Posicion -> Number
+coordZ (_,_,z) = z
+
+data Planeta = Planeta{
+nombrePlaneta :: String,
+posicionPlaneta :: Posicion,
+relacionTiempo :: (Number -> Number)
+} deriving (Show,Eq)
+
+data Astronauta = Astronauta{
+nombreAstronauta :: String,
+edadAstronauta :: Number,
+planetaAstronauta :: Planeta
+} deriving (Show,Eq)
+
+cuadrado :: Number -> Number
+cuadrado unNumero = unNumero * unNumero
+
+diferenciaCoordenada :: Planeta -> Planeta -> (Posicion -> Number) -> Number
+diferenciaCoordenada unPlaneta otroPlaneta unEje = (unEje . posicionPlaneta) unPlaneta - (unEje . posicionPlaneta) otroPlaneta
+
+distanciaPlanetas :: Planeta -> Planeta -> Number
+distanciaPlanetas unPlaneta otroPlaneta = sqrt . sum . map cuadrado . map (diferenciaCoordenada unPlaneta otroPlaneta) $ [coordX,coordY,coordZ]
+
+tiempoViaje :: Number -> Planeta -> Planeta -> Number
+tiempoViaje unaVelocidad unPlaneta otroPlaneta = ((/ unaVelocidad) . distanciaPlanetas unPlaneta) otroPlaneta
+
+pasarTiempo :: Number -> Astronauta -> Astronauta
+pasarTiempo cantAnios unAstronauta = unAstronauta { edadAstronauta = (edadAstronauta unAstronauta) + (relacionTiempo . planetaAstronauta $ unAstronauta) cantAnios}
+
+type Nave = Planeta -> Planeta -> Number
+
+naveVieja :: Number -> Nave
+naveVieja cantTanques planetaOrigen planetaDestino | cantTanques < 6 = tiempoViaje 10 planetaOrigen planetaDestino
+                                                   | otherwise = tiempoViaje 7 planetaOrigen planetaDestino
+
+naveFuturista :: Nave
+naveFuturista planetaOrigen planetaDestino = 0
+
+cambiaPlaneta :: Planeta -> Astronauta -> Astronauta
+cambiaPlaneta unPlaneta unAstronauta = unAstronauta {planetaAstronauta = unPlaneta}
+
+realizarViaje :: Nave -> Planeta -> Planeta -> Astronauta -> Astronauta
+realizarViaje unaNave planetaOrigen planetaDestino unAstronauta = (cambiaPlaneta planetaDestino . flip pasarTiempo unAstronauta . unaNave planetaOrigen) planetaDestino
+
+planetaPartida :: [Astronauta] -> Planeta
+planetaPartida equipoRescate = (planetaAstronauta . head) equipoRescate
+
+agregarAlEquipo :: [Astronauta] -> Astronauta -> [Astronauta]
+agregarAlEquipo equipoRescate unAstronauta = equipoRescate ++ [unAstronauta]
+
+incorporarPerdido :: Nave -> Planeta -> Planeta -> Astronauta -> [Astronauta] -> [Astronauta]
+incorporarPerdido unaNave planetaOrigen planetaDestino unPerdido equipoRescate = (agregarAlEquipo equipoRescate . flip pasarTiempo unPerdido . unaNave planetaOrigen) planetaDestino
+
+misionRescate :: Astronauta -> Nave -> [Astronauta] -> [[Astronauta] -> [Astronauta]]
+misionRescate unPerdido unaNave equipoRescate = [map (realizarViaje unaNave (planetaPartida equipoRescate) (planetaAstronauta unPerdido)),incorporarPerdido unaNave (planetaPartida equipoRescate) (planetaAstronauta unPerdido) unPerdido,map (realizarViaje unaNave (planetaAstronauta unPerdido) (planetaPartida equipoRescate) )]
+
+rescatarAstronauta :: Astronauta -> Nave -> [Astronauta] -> [Astronauta]
+rescatarAstronauta unPerdido unaNave equipoRescate = foldl (flip ($)) equipoRescate (misionRescate unPerdido unaNave equipoRescate)
+
+loPuedenRescatar :: Nave -> [Astronauta] -> Astronauta -> Bool
+loPuedenRescatar unaNave listaAstronauta unPerdido = (all ((<90) . edadAstronauta) . rescatarAstronauta unPerdido unaNave) listaAstronauta
+
+rescatarAstronautas :: [Astronauta] -> Nave -> [Astronauta] -> [String]
+rescatarAstronautas listaPerdidos unaNave equipoRescate = (map nombreAstronauta . filter (loPuedenRescatar unaNave equipoRescate)) listaPerdidos
+
+-- f :: Ord b => (b -> [a] -> b) -> b -> (Number -> a -> Bool) -> [a] -> Bool
+-- c es (Number -> a -> Bool)
+-- recibe una lista de [a]
+-- a es (tipo de b -> [a] -> [lista de b])
+f a b c = any ((> b).a b).filter (c 10)

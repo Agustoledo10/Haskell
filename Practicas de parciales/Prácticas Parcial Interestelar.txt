@@ -1,0 +1,73 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Posicion = Posicion{
+x :: Number,
+y :: Number,
+z :: Number
+} deriving (Show,Eq)
+
+data Planeta = Planeta{
+nombrePlaneta :: String,
+posicion :: Posicion,
+relacionTiempo :: (Number -> Number)
+} deriving (Show,Eq)
+
+data Astronauta = Astronauta{
+nombreAstronauta :: String,
+edad :: Number,
+planetaActual :: Planeta
+} deriving (Show,Eq)
+
+diffCoord ::  Planeta -> Planeta -> (Posicion -> Number) -> Number
+diffCoord unPlaneta otroPlaneta unaCoord = abs (((unaCoord.posicion) unPlaneta) - ((unaCoord.posicion) otroPlaneta))
+
+cuadrado :: Number -> Number
+cuadrado x = x*x
+
+distanciaPlanetas :: Planeta -> Planeta -> Number
+distanciaPlanetas unPlaneta otroPlaneta = sqrt ((cuadrado.diffCoord unPlaneta otroPlaneta) z + (cuadrado.diffCoord unPlaneta otroPlaneta) y + (cuadrado.diffCoord unPlaneta otroPlaneta) x)
+
+tiempoDeViaje :: Number -> Planeta -> Planeta -> Number
+tiempoDeViaje unaVelocidad unPlaneta otroPlaneta = (ceiling.(/unaVelocidad).distanciaPlanetas unPlaneta) otroPlaneta
+
+pasarTiempo :: Number -> Astronauta -> Astronauta
+pasarTiempo cantAnios unAstronauta  = unAstronauta {edad = (edad unAstronauta) + ((relacionTiempo . planetaActual) unAstronauta) cantAnios}
+
+type Nave = Planeta -> Planeta -> Number
+
+naveVieja :: Number -> Nave
+naveVieja tanquesO2 unPlaneta otroPlaneta | tanquesO2 < 6 = tiempoDeViaje 10 unPlaneta otroPlaneta
+                                          | otherwise = tiempoDeViaje 7 unPlaneta otroPlaneta
+
+naveFuturista :: Nave
+naveFuturista unPlaneta otroPlaneta = 0
+
+usarNave :: Nave -> Nave
+usarNave unaNave unPlaneta otroPlaneta = unaNave unPlaneta otroPlaneta
+
+cambiarPlaneta :: Astronauta -> Planeta -> Astronauta
+cambiarPlaneta unAstronauta unPlaneta = unAstronauta { planetaActual = unPlaneta}
+
+realizarUnViaje :: Nave -> Planeta -> Planeta -> Astronauta -> Astronauta
+realizarUnViaje unaNave unPlaneta otroPlaneta unAstronauta = pasarTiempo  (usarNave unaNave unPlaneta otroPlaneta) (cambiarPlaneta unAstronauta otroPlaneta)
+
+
+realizarUnViajeRescate :: Nave -> Planeta -> Planeta -> Astronauta -> Astronauta
+realizarUnViajeRescate unaNave unPlaneta otroPlaneta unAstronauta = pasarTiempo  (usarNave unaNave unPlaneta otroPlaneta) unAstronauta
+
+viajarAPlanetaRescate :: Nave -> Planeta -> [Astronauta] -> [Astronauta]
+viajarAPlanetaRescate unaNave unPlanetaDestino listaAstronautas = map (realizarUnViaje unaNave ((planetaActual.head) listaAstronautas) unPlanetaDestino) listaAstronautas
+
+astronautaLuegoEspera :: Astronauta -> Nave -> Planeta -> Astronauta
+astronautaLuegoEspera unAstronauta unaNave unPlaneta = pasarTiempo (usarNave unaNave unPlaneta (planetaActual unAstronauta)) unAstronauta
+
+incorporarRescatado :: Astronauta -> Nave -> [Astronauta] -> [Astronauta]
+incorporarRescatado unAstronauta unaNave listaAstronautas = listaAstronautas ++ [astronautaLuegoEspera unAstronauta unaNave ((planetaActual.head) listaAstronautas)] 
+
+viajarAPlanetaOrigen :: Nave -> [Astronauta] -> [Astronauta]
+viajarAPlanetaOrigen unaNave listaAstronautas = map (realizarUnViajeRescate unaNave ((planetaActual.head) listaAstronautas) ((planetaActual.last) listaAstronautas)) listaAstronautas
+
+rescatarAstronauta :: [Astronauta] -> Nave -> Astronauta -> [Astronauta]
+rescatarAstronauta  grupoRescatistas unaNave unAstronauta = (viajarAPlanetaOrigen unaNave . incorporarRescatado unAstronauta unaNave . viajarAPlanetaRescate unaNave (planetaActual unAstronauta)) grupoRescatistas

@@ -1,0 +1,81 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Chico = Chico{
+nombre :: String,
+edad :: Number,
+habilidades :: [String],
+deseos :: [Chico -> Chico]
+}
+
+aprenderHabilidades :: [String] -> Chico -> Chico
+aprenderHabilidades grupoDeHabilidades unChico = unChico{habilidades = (habilidades unChico) ++ grupoDeHabilidades }
+
+n = [1..]
+
+
+nfs = ["Need for Speed" ++ show n ]
+
+serGrosoEnNeedForSpeed :: Chico -> Chico
+serGrosoEnNeedForSpeed unChico = unChico {habilidades = (habilidades unChico) ++ nfs}
+
+serMayor :: Chico -> Chico
+serMayor unChico = unChico{edad = 18}
+
+primerDeseo :: Chico -> Chico
+primerDeseo unChico = ((head.deseos) unChico) unChico
+
+padrinoWanda :: Chico -> Chico
+padrinoWanda unChico = (serMayor.primerDeseo) unChico 
+
+desMadurar :: Chico -> Chico
+desMadurar unChico = unChico{edad = div (edad unChico) 2}
+
+padrinoCosmo :: Chico -> Chico
+padrinoCosmo unChico = desMadurar unChico
+
+
+
+muffinMagico :: Chico -> Chico
+muffinMagico unChico = foldl (flip ($)) unChico (deseos unChico)
+
+tieneHabilidad :: String -> Chico -> Bool
+tieneHabilidad unaHabilidad unChico = (elem unaHabilidad . habilidades) unChico
+
+esMayor :: Chico -> Bool
+esMayor unChico = ((>=18).edad) unChico 
+
+sabeManejar :: Chico -> Bool
+sabeManejar unChico = (elem "manejar" . habilidades) unChico 
+
+esSuperMaduro :: Chico -> Bool
+esSuperMaduro unChico = sabeManejar unChico && esMayor unChico 
+
+data Chica = Chica{
+nombreChica :: String,
+condicion :: (Chico -> Bool)
+} deriving (Show,Eq)
+
+
+cumpleCondiciones :: Chica -> Chico -> Bool
+cumpleCondiciones unaChica unChico = (condicion unaChica) unChico
+
+quienConquistaA :: Chica -> [Chico] -> Chico
+quienConquistaA unaChica losPretendientes | any (cumpleCondiciones unaChica) losPretendientes = (head . filter (cumpleCondiciones unaChica)) losPretendientes
+                                          | otherwise = last losPretendientes
+
+sabeCocinar :: Chico -> Bool
+sabeCocinar unChico = elem ("cocinar") (habilidades unChico)
+
+daniela = Chica "Daniela" (sabeCocinar)
+
+esHabilidadProhibida :: String -> Bool
+esHabilidadProhibida unaHabilidad = unaHabilidad == "enamorar" || unaHabilidad == "matar" || unaHabilidad == "dominar el mundo"
+
+infraccionDaRule :: Chico -> Bool
+infraccionDaRule unChico = ( any (esHabilidadProhibida). take 5 . habilidades . muffinMagico ) unChico
+
+infractoresDeDaRules ::[Chico] -> [String]
+infractoresDeDaRules listaChicos = (map (nombre) . filter (infraccionDaRule)) listaChicos
+

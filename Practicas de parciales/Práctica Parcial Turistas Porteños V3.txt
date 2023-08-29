@@ -1,0 +1,96 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Destino = (String,Number,[String])
+
+nombreDestino :: Destino -> String
+nombreDestino (nd,_,_) = nd
+
+distanciaDestino :: Destino -> Number
+distanciaDestino (_,dd,_) = dd
+
+caracteristicasDestino :: Destino -> [String]
+caracteristicasDestino (_,_,cd) = cd
+
+type Preferencia = Destino -> Bool
+
+type Persona = (String,Preferencia)
+
+nombrePersona :: Persona -> String
+nombrePersona = fst
+
+preferenciaPersona :: Persona -> Preferencia
+preferenciaPersona = snd
+
+lugaresDeEjemplo :: [Destino]
+lugaresDeEjemplo = [("Rosario", 300,["Monumento a la bandera", "Rio"]),("Mar Del Plata", 400, ["Playa", "Alfajores", "Puloveres"]), ("Bariloche",1600, ["Montañas", "Nieve", "Puloveres", "Chocolate"])]
+
+juan :: Persona
+juan =("Juan", playero)
+ana :: Persona
+ana = ("Ana", mejorCerca)
+jorge :: Persona
+jorge = ("Jorge", gastronomico)
+zulma :: Persona
+zulma = ("Zulma", playero)
+
+tieneCaracteristica :: String -> Destino -> Bool
+tieneCaracteristica unaCaracteristica unDestino = (elem unaCaracteristica . caracteristicasDestino) unDestino 
+
+playero :: Preferencia
+playero unDestino = tieneCaracteristica "Playa" unDestino
+
+mejorCerca :: Preferencia
+mejorCerca unDestino =  ((<500) . distanciaDestino) unDestino
+
+comestibles = ["Alfajores","Chocolate"]
+
+esComestible :: String -> Bool
+esComestible unaCaracteristica = elem unaCaracteristica comestibles
+
+gastronomico :: Preferencia
+gastronomico unDestino = (any esComestible . caracteristicasDestino) unDestino
+
+esquiador :: Preferencia
+esquiador unDestino = tieneCaracteristica "Nieve" unDestino && tieneCaracteristica "Montañas" unDestino && (not.mejorCerca) unDestino
+
+cumplePreferencia :: Preferencia -> Preferencia
+cumplePreferencia unaPreferencia unDestino = unaPreferencia unDestino
+
+puedeIrLugar :: Persona -> Destino -> Bool
+puedeIrLugar unaPersona unDestino = (flip (cumplePreferencia) unDestino . preferenciaPersona) unaPersona
+
+lugaresPuedeIr :: Persona -> [Destino] -> [String]
+lugaresPuedeIr unaPersona listaDestino = (map nombreDestino . filter (puedeIrLugar unaPersona)) listaDestino
+
+maximoSegun :: Ord b => (a -> b) -> [a] -> a
+maximoSegun _ [a] = a
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                       | otherwise = maximoSegun f (y:ys)
+
+personasEligen :: [Persona] -> Destino -> Number
+personasEligen listaPersonas unDestino = (length . filter (flip (puedeIrLugar) unDestino)) listaPersonas
+
+lugarMasElegido :: [Persona] -> [Destino] -> String
+lugarMasElegido listaPersonas listaDestinos = (nombreDestino . maximoSegun (personasEligen listaPersonas)) listaDestinos
+
+puedenIrTodosA :: [Persona] -> Destino -> Bool
+puedenIrTodosA listaPersonas unDestino = all (flip (puedeIrLugar) unDestino) listaPersonas
+
+puedeIrFamilia :: [Persona] -> [Destino] -> [Destino]
+puedeIrFamilia unaFamilia listaDestino = filter (puedenIrTodosA unaFamilia) listaDestino
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 

@@ -1,0 +1,63 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Animal = Animal{
+coefIntelectual :: Number,
+especie :: String,
+capacidades :: [String]
+}deriving (Show,Eq)
+
+inteligenciaSuperior :: Number -> Animal -> Animal
+inteligenciaSuperior numero unAnimal = unAnimal {coefIntelectual = (coefIntelectual unAnimal) + numero}
+
+pinkificar :: Animal -> Animal
+pinkificar unAnimal = unAnimal{capacidades = []}
+
+superpoderes :: Animal -> Animal 
+superpoderes unAnimal | ((=="Elefante") . especie ) unAnimal = unAnimal {capacidades = (capacidades unAnimal) ++ ["No tenerle miedo a los ratones"]}
+                      | ((=="Raton") . especie ) unAnimal && ((>100) . coefIntelectual) unAnimal = unAnimal {capacidades = (capacidades unAnimal) ++ ["Hablar"]}
+                      | otherwise = unAnimal
+
+antropomorfico :: Animal -> Bool 
+antropomorfico unAnimal = elem "Hablar" (capacidades unAnimal) && ((>60).coefIntelectual) unAnimal
+
+perteneceVocales letra = elem letra ['a','e','e','i','o','u']
+
+unaEsVocal palabra = any (perteneceVocales) palabra
+
+pinkiesco capacidad = ((== "Hacer"). head . words) capacidad && ((<=4) . length . head . tail . words) capacidad && ((==1) . length . tail . words) capacidad && unaEsVocal capacidad
+
+noTanCuerdo :: Animal -> Bool
+noTanCuerdo unAnimal = ((>2).length.filter (pinkiesco).capacidades) unAnimal
+
+data Experimento = Experimento{
+transformaciones :: [Animal -> Animal],
+criterio :: (Animal -> Bool)
+} deriving (Show,Eq)
+
+experimentoExitoso :: Animal -> Experimento -> Bool
+experimentoExitoso unAnimal unExperimento = (criterio unExperimento . foldl (flip ($)) unAnimal . transformaciones) unExperimento
+
+
+
+--prueba :: Animal -> [Animal -> Animal] ->  (Animal -> Bool) -> Bool
+--prueba unAnimal listaTransformaciones criterio = (criterio (foldl (flip ($)) unAnimal listaTransformaciones))
+
+
+hacerExperimento unExperimento unAnimal = foldl (flip ($)) unAnimal (transformaciones unExperimento)
+
+reportes listaAnimales listaCapacidades unExperimento unaCondicionFiltrar unaCondicionMostrar = map unaCondicionMostrar (filter (unaCondicionFiltrar) (map (hacerExperimento unExperimento) listaAnimales))
+
+coincide listaCapacidades unaCapacidad = elem unaCapacidad listaCapacidades
+
+poseeCapacidades listaCapacidades unAnimal = any (coincide listaCapacidades) (capacidades unAnimal)
+
+poseeTodasCapacidades listaCapacidades unAnimal = all (coincide listaCapacidades) (capacidades unAnimal)
+
+reporte1 listaAnimales listaCapacidades unExperimento = reportes listaAnimales listaCapacidades unExperimento (poseeCapacidades listaCapacidades) (coefIntelectual)
+
+reporte2 listaAnimales listaCapacidades unExperimento = reportes listaAnimales listaCapacidades unExperimento (poseeTodasCapacidades listaCapacidades) (especie)
+
+reporte3 listaAnimales listaCapacidades unExperimento = reportes listaAnimales listaCapacidades unExperimento (not.(poseeCapacidades listaCapacidades)) (length.capacidades)
+

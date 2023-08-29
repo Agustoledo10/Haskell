@@ -1,0 +1,98 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Persona = (Number,Number,Number)
+
+pancho :: Persona
+pancho = ( 40, 120, 1)
+
+andres :: Persona
+andres = ( 22, 80, 6)
+
+edad :: Persona -> Number
+edad (e,_,_) = e
+
+peso :: Persona -> Number
+peso (_,p,_) = p
+
+tonificacion :: Persona -> Number
+tonificacion (_,_,t) = t 
+
+relax :: Number -> Persona -> Persona
+relax miinutos unaPersona = unaPersona
+
+estaObeso :: Persona -> Bool
+estaObeso unaPersona = ((>100).peso) unaPersona
+
+saludable :: Persona -> Bool
+saludable unaPersona = (not.estaObeso) unaPersona && ((>5) . tonificacion) unaPersona
+
+bajaPeso :: Number -> Persona -> Persona
+bajaPeso unaCantidad unaPersona =  (edad unaPersona,(peso unaPersona) - unaCantidad,tonificacion unaPersona) 
+
+quemarCalorias :: Number -> Persona -> Persona
+quemarCalorias cantCalorias unaPersona | estaObeso unaPersona = bajaPeso (cantCalorias / 150) unaPersona
+                                       | (not.estaObeso) unaPersona && ((>30) . edad) unaPersona && cantCalorias > 200 = bajaPeso 1 unaPersona
+                                       | otherwise = bajaPeso (cantCalorias / ((peso unaPersona)*(edad unaPersona))) unaPersona
+
+type Ejercicio = Number -> Persona -> Persona
+
+haceEjercicio :: Ejercicio -> Ejercicio
+haceEjercicio unEjercicio unaDuracion unaPersona = (unEjercicio unaDuracion) unaPersona
+
+cinta :: Number -> Ejercicio
+cinta velPromedio unTiempo unaPersona = quemarCalorias (unTiempo*velPromedio) unaPersona
+
+caminata :: Ejercicio
+caminata unTiempo unaPersona = cinta 5 unTiempo unaPersona
+
+-- velPromedio : vel final + velinicial / 2
+
+velFinal :: Number -> Number
+velFinal unTiempo = 6 + (unTiempo/5)
+
+velPromedioCinta :: Number -> Number
+velPromedioCinta unTiempo =((6 + (velFinal unTiempo))/ 2)
+
+entrenamientoEnCinta :: Ejercicio
+entrenamientoEnCinta unTiempo unaPersona = cinta (velPromedioCinta unTiempo) unTiempo unaPersona
+
+tonifica :: Number -> Persona -> Persona
+tonifica unaCantidad unaPersona = (edad unaPersona, peso unaPersona,(tonificacion unaPersona) + unaCantidad)
+
+pesas :: Number -> Ejercicio
+pesas kilosLevanta unTiempo unaPersona | unTiempo > 10 = tonifica (kilosLevanta/10) unaPersona
+                                       | otherwise = unaPersona
+
+colina :: Number -> Ejercicio
+colina unaInclinacion unTiempo unaPersona = quemarCalorias (2*unaInclinacion*unTiempo) unaPersona
+
+montania :: Number -> Ejercicio
+montania unaInclinacion unTiempo unaPersona = (tonifica 1 . colina (unaInclinacion + 3) (unTiempo / 2) . colina unaInclinacion (unTiempo / 2)) unaPersona
+
+type Rutina = (String,Number,[Ejercicio])
+
+nombreRutina :: Rutina -> String
+nombreRutina (nr,_,_) = nr
+
+duracionRutina :: Rutina -> Number
+duracionRutina (_,dr,_) = dr
+
+ejerciciosRutina :: Rutina -> [Ejercicio]
+ejerciciosRutina (_,_,er) = er
+
+asignarTiempoEjercicios :: Rutina -> [Ejercicio] -> [Persona -> Persona]
+asignarTiempoEjercicios unaRutina listaEjercicios = map (flip ($) (duracionRutina unaRutina / (length listaEjercicios))) listaEjercicios
+
+realizaRutina :: Rutina  -> Persona -> Persona
+realizaRutina unaRutina  unaPersona = (foldl (flip ($)) unaPersona . asignarTiempoEjercicios unaRutina . ejerciciosRutina) unaRutina
+
+type Resumen = (String , Number , Number)
+
+diff :: (Persona -> Number) -> Persona -> Rutina -> Number
+diff unAspecto unaPersona unaRutina = abs ((unAspecto unaPersona) - (unAspecto . realizaRutina unaRutina $ unaPersona))
+
+resumenRutina :: Rutina -> Persona -> Resumen
+resumenRutina unaRutina unaPersona = ((nombreRutina unaRutina),diff peso unaPersona unaRutina, diff tonificacion unaPersona unaRutina)
+ 

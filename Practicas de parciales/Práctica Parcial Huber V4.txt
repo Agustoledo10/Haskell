@@ -1,0 +1,78 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+import Prelude (Float)
+
+type Fecha = (Number,Number,Number)
+
+type Condicion = (Viaje -> Bool)
+
+data Cliente = Cliente {
+nombreCliente :: String,
+zonaResidencia :: String
+} deriving (Show,Eq)
+
+data Viaje = Viaje{
+fechaViaje :: Fecha,
+clienteViaje :: Cliente,
+costoViaje :: Number
+}  deriving (Show,Eq)
+
+data Chofer = Chofer {
+nombreChofer :: String,
+kilometrosAuto :: Number,
+listaViajes :: [Viaje],
+condicionViaje :: Condicion
+}  deriving (Show,Eq)
+
+cualqViaje :: Condicion
+cualqViaje unViaje = True
+
+viajeMas200 :: Condicion
+viajeMas200 unViaje = ((>200) . costoViaje) unViaje
+
+viajeSegunNombre :: Number -> Condicion
+viajeSegunNombre cantidadLetras unViaje = ((<=cantidadLetras) . length . nombreCliente . clienteViaje) unViaje
+
+noViajaZona :: String -> Condicion
+noViajaZona unaZona unViaje = ((/= unaZona) . zonaResidencia . clienteViaje) unViaje
+
+lucas :: Cliente
+lucas = Cliente "Lucas" "Victoria"
+
+daniel :: Chofer
+daniel = Chofer "Daniel" 23500 [Viaje (20,4,2017) lucas 150] (noViajaZona "Olivos")
+
+alejandra :: Chofer
+alejandra = Chofer "Alejandra" 180000 [] cualqViaje
+
+liquidacionChofer :: Chofer -> Number
+liquidacionChofer unChofer = (sum . map costoViaje . listaViajes) unChofer
+
+tomaViaje :: Viaje -> Chofer -> Bool
+tomaViaje unViaje unChofer = (condicionViaje unChofer) unViaje
+
+minimoSegun _ [a] = a
+minimoSegun f (x:y:ys) | f x < f y = minimoSegun f (x:ys)
+                       | otherwise = minimoSegun f (y:ys)
+
+registrarViaje :: Viaje -> Chofer -> Chofer
+registrarViaje unViaje unChofer = unChofer {listaViajes = (listaViajes unChofer) ++ [unViaje]}
+
+realizarUnViaje :: Viaje -> [Chofer] -> Chofer
+realizarUnViaje unViaje listaChoferes = registrarViaje unViaje . minimoSegun (length . listaViajes) . filter (tomaViaje unViaje) $ listaChoferes
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

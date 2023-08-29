@@ -1,0 +1,15 @@
+module PracParCarr where
+import PdePreludat
+import Prelude (Int)
+
+data Auto = Auto {
+color :: String,
+velocidad :: Number,
+distancia :: Number
+} deriving (Show,Eq)
+
+type Carrera = [Auto]
+
+autosSonDistintos auto1 auto2 = auto1 /= auto2
+autosEstanCerca auto1 auto2 = autosSonDistintos && ((<10).distanciaAutos auto1) auto2 
+

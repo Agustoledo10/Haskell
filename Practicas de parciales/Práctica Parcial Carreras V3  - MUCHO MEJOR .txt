@@ -1,0 +1,123 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+-------- 1 -------------
+
+data Auto = Auto{
+color :: String,
+velocidad :: Number,
+distanciaRecorrida :: Number
+} deriving (Show,Eq)
+
+-- Si una carrera se conformara por infinitos autos, ¿sería posible usar las funciones del punto 1b y 1c de modo que terminen de evaluarse? Justificar.
+--1b es que va Tranquilo. No se puede emplear la función puesto que no daría ningún resultado. Esto se debe a que la función es de evaluación ansiosa, debe
+-- analizar que el auto que se toma como objeto de estudio le vaya ganando a cada uno de los autos restantes en la carrera. Como esos autos son infinitos, la evaluación nunca cesará.
+
+type Carrera = [Auto]
+
+sonDistintos :: Auto -> Auto -> Bool
+sonDistintos unAuto otroAuto = unAuto /= otroAuto
+
+distanciaAutos :: Auto -> Auto -> Number
+distanciaAutos unAuto otroAuto = abs (distanciaRecorrida unAuto -  distanciaRecorrida otroAuto)
+
+estaCerca :: Auto -> Auto -> Bool
+estaCerca unAuto autoReferencia = sonDistintos unAuto autoReferencia && ((<10) . distanciaAutos unAuto) autoReferencia 
+
+ningunoEstaCerca :: Auto -> [Auto] -> Bool
+ningunoEstaCerca unAuto listaAutos = (not . any (estaCerca unAuto)) listaAutos
+
+leVaGanando :: Auto -> Auto -> Bool
+leVaGanando unAuto otroAuto = distanciaRecorrida unAuto >  distanciaRecorrida otroAuto
+
+lesVaGanando :: Auto -> Carrera -> Bool
+lesVaGanando unAuto listaAutos = (all (leVaGanando unAuto) . excluirCandidato unAuto) listaAutos
+
+excluirCandidato :: Auto -> Carrera -> Carrera
+excluirCandidato unAuto unaCarrera = filter (sonDistintos unAuto) unaCarrera
+
+vaTranquilo :: Auto -> Carrera -> Bool
+vaTranquilo unAuto unaCarrera = lesVaGanando unAuto unaCarrera && ningunoEstaCerca unAuto unaCarrera
+
+puesto :: Auto -> Carrera -> Number
+puesto unAuto unaCarrera = ((+1) . length . filter (flip leVaGanando unAuto)) unaCarrera
+
+corre :: Number -> Auto -> Auto
+corre unTiempo unAuto = unAuto { distanciaRecorrida = (distanciaRecorrida unAuto) + (((*unTiempo).velocidad) $ unAuto)}
+
+alterarVelocidad :: (Number -> Number) -> Auto -> Auto
+alterarVelocidad modificadorVelocidad unAuto = unAuto { velocidad = (modificadorVelocidad . velocidad) unAuto }
+
+restarVelocidad :: Number -> Number -> Number
+restarVelocidad unaCantidad unaVelocidad = max (unaVelocidad - unaCantidad) 0 
+
+bajarLaVelocidad :: Number -> Auto -> Auto
+bajarLaVelocidad unaCantidad unAuto = alterarVelocidad (restarVelocidad unaCantidad) unAuto
+
+afectarALosQueCumplen :: (a -> Bool) -> (a -> a) -> [a] -> [a]
+afectarALosQueCumplen criterio efecto lista
+  = (map efecto . filter criterio) lista ++ filter (not.criterio) lista
+
+type PowerUp = Auto -> Carrera -> Carrera
+
+terremoto :: PowerUp
+terremoto unAuto unaCarrera = afectarALosQueCumplen (estaCerca unAuto) (bajarLaVelocidad 50) unaCarrera
+
+miguelitos :: Number -> PowerUp
+miguelitos unaCantidad unAuto unaCarrera = afectarALosQueCumplen (leVaGanando unAuto) (bajarLaVelocidad unaCantidad) unaCarrera
+
+duplicarVelocidad :: Auto -> Auto
+duplicarVelocidad unAuto = alterarVelocidad (*2) unAuto
+
+normalizarVelocidad :: Auto -> Auto -> Auto
+normalizarVelocidad unAuto unAutoModificado = unAutoModificado { velocidad = (velocidad unAuto)}
+
+efectoJetPack :: Number -> Auto -> Auto
+efectoJetPack unTiempo unAuto = (normalizarVelocidad unAuto . corre unTiempo . duplicarVelocidad) unAuto
+
+jetpack :: Number -> PowerUp
+jetpack unTiempo unAuto unaCarrera = afectarALosQueCumplen ((== unAuto)) (efectoJetPack unTiempo) unaCarrera
+
+type Evento = Carrera -> Carrera
+
+obtenerInfoTabla :: Carrera -> Auto -> (Number,String)
+obtenerInfoTabla unaCarrera unAuto = (puesto unAuto unaCarrera,color unAuto)
+
+tablaPosiciones :: Carrera -> [(Number,String)]
+tablaPosiciones unaCarrera = map (obtenerInfoTabla unaCarrera) unaCarrera
+
+simularCarrera :: Carrera -> [Evento] -> [(Number,String)]
+simularCarrera unaCarrera listaEventos = (tablaPosiciones . foldl (flip ($)) unaCarrera) listaEventos
+
+correnTodos :: Number -> Evento
+correnTodos unTiempo unaCarrera = map (corre unTiempo) unaCarrera
+
+encontrarIndicado :: String -> Carrera -> Auto
+encontrarIndicado unColor unaCarrera = (head . filter ((==unColor).color)) unaCarrera
+
+usaPowerUp :: String -> PowerUp -> Evento
+usaPowerUp unColor unPowerUp unaCarrera = (flip unPowerUp unaCarrera . encontrarIndicado unColor) unaCarrera 
+
+autoRojo = Auto "Rojo" 120 0
+
+autoNegro = Auto "Negro" 120 0
+
+autoAzul = Auto "Azul" 120 0
+
+autoBlanco = Auto "Blanco" 120 0
+
+carreraEj :: Carrera
+carreraEj = [autoAzul,autoBlanco,autoNegro,autoRojo]
+
+eventosEjemplo :: [Evento]
+eventosEjemplo = [correnTodos 30,usaPowerUp "Azul" (jetpack 3), usaPowerUp "Blanco" terremoto,correnTodos 40,usaPowerUp "Blanco" (miguelitos 20),usaPowerUp "Negro" (jetpack 6),correnTodos 10]
+
+resultadosCarreraEjemplo :: [(Number,String)] 
+resultadosCarreraEjemplo = simularCarrera carreraEj eventosEjemplo
+
+-- se puede
+--misil :: String -> PowerUp
+--misil unColor unAuto unaCarrera = afectarALosQueCumplen ((== unColor).color) (efectoMisil) unaCarrera
+
+-- no pueden usarse, pues divergen, se evalua infinitamente, puesto que se necesita la info de todos los elementos de la lista y esta es infinita

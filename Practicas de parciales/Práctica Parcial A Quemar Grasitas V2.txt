@@ -1,0 +1,97 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Persona = Persona {
+nombrePersona :: String,
+edad :: Number,
+peso :: Number,
+coefTonif :: Number
+} deriving (Show,Eq)
+
+pancho = Persona "Francisco" 40 120 1
+
+andy = Persona "Andres" 22 80 6
+
+type Ejercicio = Persona -> Persona
+
+obesa :: Persona -> Bool
+obesa unaPersona = ((>100).peso) unaPersona
+
+saludable :: Persona -> Bool
+saludable unaPersona = (not.obesa) unaPersona && ((>5).coefTonif) unaPersona
+
+quemarCalorias :: Persona -> Number -> Persona
+quemarCalorias unaPersona caloriasAQuemar | obesa unaPersona = unaPersona {peso = (peso unaPersona) - (caloriasAQuemar / 150)}
+                                          | ((>30).edad) unaPersona && (>200) caloriasAQuemar = unaPersona {peso = (peso unaPersona) -1}
+                                          | otherwise = unaPersona {peso = (peso unaPersona) - (caloriasAQuemar / ((peso unaPersona)* (edad unaPersona)))}
+
+-- velocidadPromedio velocidadfinal + velocidad inicial / 2 
+velocidadPromedio :: Number -> Number
+velocidadPromedio minutos  = (((div minutos 5) + 6) + 6) / 2
+
+
+caminata :: Number -> Ejercicio
+caminata minutos unaPersona = quemarCalorias unaPersona (1*5*minutos)
+
+entrenamientoEnCinta :: Number -> Ejercicio
+entrenamientoEnCinta minutos unaPersona = quemarCalorias unaPersona (1*minutos*velocidadPromedio minutos)
+
+tonificaPesas :: Number -> Number -> Ejercicio
+tonificaPesas levanta minutos unaPersona = unaPersona {coefTonif = (coefTonif unaPersona) + (levanta/10)}
+
+haceAlMenos10Min :: Number -> Bool
+haceAlMenos10Min minutos = (>10) minutos
+
+pesas :: Number -> Number -> Ejercicio
+pesas levanta minutos unaPersona | haceAlMenos10Min minutos = tonificaPesas levanta minutos unaPersona
+                                 | otherwise = unaPersona 
+
+colina :: Number -> Number -> Ejercicio
+colina inclinacion minutos unaPersona = quemarCalorias unaPersona (2*minutos*inclinacion)
+
+tonificaUnidad :: Persona -> Persona
+tonificaUnidad unaPersona = unaPersona {coefTonif = (coefTonif unaPersona) +1}
+
+montania :: Number -> Number -> Ejercicio
+montania inclinacion minutos unaPersona = (tonificaUnidad.colina (inclinacion+3) (minutos/2). colina inclinacion (minutos/2)) unaPersona
+
+haceEjercicios :: [Ejercicio] -> Persona -> Persona
+haceEjercicios listaEjericicos unaPersona = foldl (flip ($)) unaPersona listaEjericicos 
+
+profe :: [Ejercicio] -> [Persona] -> [Persona]
+profe listaEjericicos listaSocios = (map (haceEjercicios listaEjericicos) . filter saludable) listaSocios
+
+data Rutina = Rutina {
+nombre :: String,
+ejercicios :: [Ejercicio],
+duracion :: Number
+} deriving (Show,Eq)
+
+haceRutina :: Rutina -> Persona -> Persona
+haceRutina unaRutina unaPersona = haceEjercicios (ejercicios unaRutina) unaPersona
+
+data Resumen = Resumen{
+nombreRut :: String,
+kgPerd :: Number,
+tonifGan :: Number
+}
+
+diff :: (Persona -> Number) -> Rutina -> Persona -> Number
+diff area rutina persona = abs ((area.haceRutina rutina) persona - (area persona))
+
+resumenRutina :: Rutina -> Persona -> Resumen
+resumenRutina unaRutina unaPersona = Resumen (nombre unaRutina) (diff peso unaRutina unaPersona) (diff coefTonif unaRutina unaPersona)
+
+haceSaludable :: Persona -> Rutina -> Bool
+haceSaludable unaPersona unaRutina = (saludable.haceRutina unaRutina) unaPersona
+
+rutinasUtiles :: [Rutina] -> Persona -> [Rutina]
+rutinasUtiles listaRutinas unaPersona = filter (haceSaludable unaPersona) listaRutinas 
+
+
+
+
+
+
+

@@ -1,0 +1,78 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+--Primera Parte 
+-- Punto 1 
+type Material = String
+type Gema = Personaje -> Personaje 
+type Poder = String 
+type Universo = [Personaje]
+
+data Guantelete = Guantelete{
+material ::String,
+gemas :: [Gema]
+} deriving (Show,Eq)
+
+data Personaje = Personaje{
+edad :: Number,
+energia :: Number,
+nombre :: String,
+planeta :: String,
+habilidades :: [Poder]  
+} deriving (Show,Eq)
+
+
+mitadUniverso universo = div (length universo) 2
+
+chasquido guantelete universo | (material guantelete) == "uru" && length (gemas guantelete) == 6 = take (mitadUniverso universo) universo
+                              | otherwise = universo
+
+--Punto 2 
+edadPjMenor45 = (<=45).edad
+
+universoAptoPdx universo = any (edadPjMenor45) universo  
+
+multiplesHabilidades personaje = ((>1).length.habilidades) personaje 
+
+energiaTotalU :: Universo -> Number
+energiaTotalU = (sum . map energia .filter (multiplesHabilidades))
+
+-- Segunda Parte
+--Punto 3 
+restaEnergia inicial resta = max 0 (inicial - resta)
+
+gemaMente :: Number -> Gema 
+gemaMente cantidad unPersonaje = unPersonaje{energia = restaEnergia (energia unPersonaje) cantidad}
+
+quitarHabilidad  habilidadQuitar = filter ((/=)habilidadQuitar)
+gemaAlma :: Poder -> Gema 
+gemaAlma habilidad unPersonaje = unPersonaje{energia = restaEnergia (energia unPersonaje) 10, habilidades = quitarHabilidad habilidad (habilidades unPersonaje) }
+
+gemaEspacio :: String -> Gema 
+gemaEspacio unPlaneta unPersonaje = unPersonaje{energia = restaEnergia (energia unPersonaje) 20, planeta = unPlaneta}
+
+quitarHabilidades unPersonaje | ((<=2).length.habilidades) unPersonaje = []
+                              | otherwise = habilidades unPersonaje 
+gemaPoder :: Gema
+gemaPoder unPersonaje = unPersonaje{energia = 0, habilidades = quitarHabilidades unPersonaje}
+
+modificarEdad unPersonaje = max 18 (div (edad unPersonaje) 2)
+
+gemaTiempo unPersonaje = unPersonaje {energia = restaEnergia (energia unPersonaje) 50, edad = modificarEdad unPersonaje}
+
+usaGema :: Gema -> Gema
+usaGema gema personaje  = gema personaje
+
+gemaLoca gema = gema.gema
+
+-- hacer hasta punto5 porque 6 y 7 temas no vistos todavía 
+
+-- Punto 4
+
+ejemploGuantelente = Guantelete "goma" [gemaTiempo, gemaLoca (gemaAlma "programacion en Haskell"), gemaAlma "usar Mjolnir"]
+
+-- Punto 5
+
+utilizarGemas gemas enemigo = foldl (flip usaGema) enemigo gemas 
+

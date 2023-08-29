@@ -1,0 +1,126 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+import Data.Char
+
+type Artefacto = (String,Number)
+
+nombreArtefacto :: Artefacto -> String
+nombreArtefacto = fst
+
+rarezaArtefacto :: Artefacto -> Number
+rarezaArtefacto = snd
+
+type Tarea = Heroe -> Heroe
+
+type Labor = [Tarea]
+
+data Bestia = Bestia {
+nombreBestia :: String,
+debilidadBestia :: (Heroe -> Bool)
+} deriving (Show,Eq)
+
+data Heroe = Heroe {
+epitetoHeroe :: String,
+nivelReconocimiento :: Number,
+listaArtefactos :: [Artefacto],
+tareasRealizada :: [Tarea]
+} deriving (Show,Eq)
+
+cambiarEpiteto :: String -> Heroe -> Heroe
+cambiarEpiteto epitetoNuevo unHeroe = unHeroe {epitetoHeroe = epitetoNuevo}
+
+incorporaArtefacto :: Artefacto -> Heroe -> Heroe
+incorporaArtefacto unArtefacto unHeroe = unHeroe {listaArtefactos = (listaArtefactos unHeroe) ++ [unArtefacto]}
+
+lanzaOlimpo :: Artefacto
+lanzaOlimpo = ("Lanza Del Olimpo",100)
+
+xiphos :: Artefacto
+xiphos = ("Xiphos",50)
+
+relampagoZeus :: Artefacto
+relampagoZeus = ("Relampago de Zeus",500)
+
+condicionLeon :: Heroe -> Bool
+condicionLeon = ((>20) . length . epitetoHeroe)
+
+leonNemea :: Bestia
+leonNemea = Bestia "Leon de Nemea" condicionLeon
+
+pasarALaHistoria :: Heroe -> Heroe
+pasarALaHistoria unHeroe | ((>1000) . nivelReconocimiento) unHeroe = cambiarEpiteto "El mitico" unHeroe
+                         | ((>500) . nivelReconocimiento) unHeroe = (incorporaArtefacto lanzaOlimpo . cambiarEpiteto "El magnifico") unHeroe
+                         | ((>100) . nivelReconocimiento) unHeroe = (incorporaArtefacto xiphos . cambiarEpiteto "Hoplita") unHeroe
+                         | otherwise = unHeroe
+
+aumentarReconocimiento :: Number -> Heroe -> Heroe
+aumentarReconocimiento unaCantidad unHeroe = unHeroe {nivelReconocimiento = ((+unaCantidad) . nivelReconocimiento) unHeroe}
+
+encontrarArtefacto :: Artefacto -> Tarea
+encontrarArtefacto unArtefacto unHeroe = (aumentarReconocimiento (rarezaArtefacto unArtefacto) . incorporaArtefacto unArtefacto) unHeroe
+
+triplicarRareza :: Artefacto -> Artefacto
+triplicarRareza unArtefacto = (nombreArtefacto unArtefacto,((*3) . rarezaArtefacto) unArtefacto)
+
+artefactosPostOlimpo :: Heroe -> Heroe
+artefactosPostOlimpo unHeroe = unHeroe {listaArtefactos = (filter ((>=1000) . rarezaArtefacto) . map triplicarRareza . listaArtefactos) unHeroe}
+
+escalarOlimpo :: Tarea
+escalarOlimpo unHeroe = (incorporaArtefacto relampagoZeus . artefactosPostOlimpo . aumentarReconocimiento 500) unHeroe
+
+groso :: Number -> String
+groso cantCuadras = "Gros" ++ (take cantCuadras . repeat $ 'o')
+
+ayudarACruzar :: Number -> Tarea
+ayudarACruzar cantCuadras unHeroe = cambiarEpiteto (groso cantCuadras) unHeroe
+
+asesinoDe :: Bestia -> String
+asesinoDe unaBestia = "El asesino de " ++ (nombreBestia unaBestia)
+
+perderArtefacto :: Heroe -> Heroe
+perderArtefacto unHeroe = unHeroe { listaArtefactos = (drop 1 . listaArtefactos) unHeroe}
+
+matarBestia :: Bestia -> Tarea
+matarBestia unaBestia unHeroe | (debilidadBestia unaBestia) unHeroe = cambiarEpiteto (asesinoDe unaBestia) unHeroe
+                              | otherwise = (cambiarEpiteto "El cobarde" . perderArtefacto) unHeroe
+
+matarLeon :: Tarea
+matarLeon unHeroe = matarBestia leonNemea unHeroe
+
+heracles :: Heroe
+heracles = Heroe "Guardianl del Olimpo" 700 [("Pistola",1000),relampagoZeus] [matarLeon]
+
+haceTarea :: Tarea -> Tarea
+haceTarea unaTarea unHeroe = unaTarea unHeroe
+
+mayorSegun :: Ord b => (a -> b) -> a -> a -> a
+mayorSegun f a b | f a > f b = a
+                 | otherwise = b
+
+menorSegun :: Ord b => (a -> b) -> a -> a -> a
+menorSegun f a b | f a <  f b = a
+                 | otherwise = b
+
+resultadoSegun :: (Heroe -> Number) -> Heroe -> Heroe -> (Heroe,Heroe)
+resultadoSegun unCriterio unHeroe otroHeroe = (mayorSegun unCriterio unHeroe otroHeroe,menorSegun unCriterio unHeroe otroHeroe)
+
+rarezaTotal :: Heroe -> Number
+rarezaTotal unHeroe = (sum . map rarezaArtefacto . listaArtefactos) unHeroe
+
+haceTareas :: [Tarea] -> Heroe -> Heroe
+haceTareas listaTareas unHeroe = foldr haceTarea unHeroe listaTareas
+
+presumir :: Heroe -> Heroe -> (Heroe,Heroe)
+presumir unHeroe otroHeroe | (nivelReconocimiento unHeroe) /= (nivelReconocimiento otroHeroe) =  resultadoSegun nivelReconocimiento unHeroe otroHeroe
+                           | (rarezaTotal unHeroe) /= (rarezaTotal otroHeroe) = resultadoSegun rarezaTotal unHeroe otroHeroe
+                           | otherwise = presumir (haceTareas (tareasRealizada otroHeroe) unHeroe) (haceTareas (tareasRealizada unHeroe) otroHeroe)
+
+realizarLabor :: Labor -> Heroe -> Heroe
+realizarLabor unaLabor unHeroe = haceTareas unaLabor unHeroe
+
+
+
+  
+
+

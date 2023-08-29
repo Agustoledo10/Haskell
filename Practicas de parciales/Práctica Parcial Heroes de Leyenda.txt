@@ -1,0 +1,107 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Artefacto = Artefacto{
+nombre :: String,
+rareza :: Number
+} deriving (Show,Eq)
+
+data Heroe = Heroe {
+epiteto :: String,
+reconcimiento :: Number,
+artefactos :: [Artefacto],
+tareas :: [Tarea]
+} deriving (Show,Eq)
+
+data Bestia = Bestia {
+nombreBestia :: String,
+debilidad :: (Heroe -> Bool)
+}
+
+lanzaDelOlimpo = Artefacto "lanza Del Olimpo" 100 
+
+xiphos = Artefacto "xiphos" 50
+
+relampagoZeus = Artefacto "Relampago de Zeus" 500
+
+posee :: [Artefacto] -> Artefacto -> Bool
+posee listaPosesion unArtefacto = elem unArtefacto listaPosesion
+
+noPosee :: [Artefacto] -> Artefacto -> Bool
+noPosee listaPosesion unArtefacto = (not . posee listaPosesion) unArtefacto
+
+incorporarArtefactos :: [Artefacto] -> [Artefacto] -> [Artefacto]
+incorporarArtefactos listaPosesion listaIncorporaciones = listaPosesion ++ (filter (noPosee listaPosesion) listaIncorporaciones)
+
+pasaALaHistoria :: Heroe -> Heroe
+pasaALaHistoria unHeroe   | ((>1000).reconcimiento) unHeroe = unHeroe {epiteto = "El mitico"}
+                          | ((>500).reconcimiento) unHeroe = unHeroe {epiteto = "El magnifico",artefactos = incorporarArtefactos (artefactos unHeroe) [lanzaDelOlimpo]}
+                          | ((<500).reconcimiento) unHeroe && ((>100).reconcimiento) unHeroe = unHeroe{epiteto = "Hoplita", artefactos = incorporarArtefactos (artefactos unHeroe) [xiphos]}
+                          | otherwise = unHeroe 
+
+        
+type Tarea = Heroe -> Heroe
+
+incorporarTarea :: [Tarea] -> Tarea -> [Tarea]
+incorporarTarea listaTareas unaTarea = listaTareas ++ [unaTarea]
+
+encontrarArtefacto :: Artefacto -> Tarea
+encontrarArtefacto unArtefacto unHeroe = unHeroe {reconcimiento = (reconcimiento unHeroe) + (rareza unArtefacto), artefactos = incorporarArtefactos (artefactos unHeroe) [unArtefacto], tareas = incorporarTarea (tareas unHeroe) (encontrarArtefacto unArtefacto)}
+
+triplicarRareza :: Artefacto -> Artefacto
+triplicarRareza unArtefacto = unArtefacto { rareza = (rareza unArtefacto)*3}
+
+artefactosDpsOlimpo :: [Artefacto] -> [Artefacto]
+artefactosDpsOlimpo listaArtefactos = (flip incorporarArtefactos [relampagoZeus] . filter (((>1000).rareza)) . map (triplicarRareza)) listaArtefactos
+
+escalarOlimpo :: Tarea
+escalarOlimpo unHeroe = unHeroe { reconcimiento = (reconcimiento unHeroe) + 500, artefactos = artefactosDpsOlimpo (artefactos unHeroe)}
+
+groso :: Number -> String
+groso unaCantidad = "Gros" ++ (take unaCantidad . repeat) 'o'
+
+ayudarCruzar :: Number -> Tarea
+ayudarCruzar cantCuadras unHeroe = unHeroe { epiteto = groso cantCuadras}
+
+matarBestia :: Bestia -> Tarea
+matarBestia unaBestia unHeroe | (debilidad unaBestia) unHeroe = unHeroe { epiteto = "El asesino" ++ (nombreBestia unaBestia)}
+                              | otherwise = unHeroe { epiteto = "El cobarde",artefactos = drop 1 (artefactos unHeroe)}
+
+realizarTarea :: Tarea -> Tarea
+realizarTarea unaTarea unHeroe = unaTarea unHeroe
+
+pistolaOlimpica = Artefacto "pistola" 1000
+
+heracles = Heroe "Guardian del Olimpo" 700 [pistolaOlimpica] [matarBestia leonNemea] 
+
+debilidadLeonNemea :: Heroe -> Bool
+debilidadLeonNemea unHeroe = ((>=20).length.epiteto) unHeroe
+
+leonNemea = Bestia "leon de Nemea" debilidadLeonNemea
+
+presumen unHeroe otroHeroe | reconcimiento unHeroe > reconcimiento otroHeroe = unHeroe
+                          | reconcimiento unHeroe < reconcimiento otroHeroe = otroHeroe
+                          | (sum . map rareza . artefactos) unHeroe > (sum . map rareza . artefactos) otroHeroe = unHeroe
+                          | (sum . map rareza . artefactos) unHeroe < (sum . map rareza . artefactos) otroHeroe = otroHeroe
+                          | otherwise = presumen (unHeroe{tareas = (tareas otroHeroe)}) (otroHeroe{tareas = (tareas unHeroe)})
+
+type Labor = [Tarea]
+
+haceLabor :: Heroe -> Labor -> Heroe
+haceLabor unHeroe unaLabor = foldl (flip realizarTarea) unHeroe unaLabor
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

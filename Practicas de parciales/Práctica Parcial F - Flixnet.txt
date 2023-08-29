@@ -1,0 +1,108 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Pelicula = Pelicula{
+nombrePelicula :: String,
+genero :: String,
+duracion :: Number,
+origen :: String
+} deriving (Show,Eq)
+
+data Usuario = Usuario{
+nombreUsuario :: String,
+categoria :: String,
+edad :: Number,
+residencia :: String,
+vistas :: [Pelicula],
+salud :: Number
+} deriving (Show,Eq)
+
+psicosis = Pelicula "Psicosis" "Terror" 109 "Estados Unidos"
+perfumeDeMujer= Pelicula "Perfume de Mujer" "Drama" 150 "Estados Unidos"
+elSaborDeLasCervezas = Pelicula "El sabor de las cervezas" "Drama" 95 "Iran"
+lasTortugasTambienVuelan = Pelicula "Las tortugas también vuelan" "Drama" 103 "Iran"
+juan = Usuario "juan" "estandar" 23 "Argentina" [perfumeDeMujer] 60
+
+peliculasEmpresa = [psicosis,perfumeDeMujer,elSaborDeLasCervezas,lasTortugasTambienVuelan]
+
+agregarPelicula :: Pelicula -> [Pelicula] -> [Pelicula]
+agregarPelicula unaPelicula peliculasVistas | elem unaPelicula peliculasVistas = peliculasVistas
+                                            | otherwise = peliculasVistas ++ [unaPelicula]
+
+verPelicula :: Pelicula -> Usuario -> Usuario
+verPelicula unaPelicula unUsuario = unUsuario {vistas = agregarPelicula unaPelicula (vistas unUsuario)}
+
+esInternacional :: Usuario -> Bool
+esInternacional unUsuario = ((/= "Estados Unidos") . residencia) unUsuario
+
+vioMas20 :: Usuario -> Bool
+vioMas20 unUsuario = ((>20) . length . vistas) unUsuario
+
+subirCategoria :: Usuario -> Usuario
+subirCategoria unUsuario | "basica" == (categoria unUsuario) = unUsuario {categoria = "estandar"}
+                         | "estandar" == (categoria unUsuario) = unUsuario {categoria = "premium"}
+                         | otherwise = unUsuario
+
+premiarFieles :: [Usuario] -> [Usuario]
+premiarFieles listaUsuarios = (map subirCategoria . filter vioMas20 . filter esInternacional) listaUsuarios
+
+type Criterio = Pelicula -> Bool
+
+cumpleCriterio :: Criterio -> Criterio
+cumpleCriterio unCriterio unaPelicula = unCriterio unaPelicula
+
+teQuedasteCorto :: Criterio
+teQuedasteCorto unaPelicula = ((<35) . duracion) unaPelicula
+
+cuestionDeGenero :: [String] -> Criterio
+cuestionDeGenero listaGeneros unaPelicula = elem (genero unaPelicula) listaGeneros
+
+deDondeSaliste :: String -> Criterio
+deDondeSaliste unOrigen unaPelicula = ((== unOrigen) . origen) unaPelicula
+
+vaPorEseLado :: Eq a => (Pelicula -> a) -> Pelicula -> Criterio
+vaPorEseLado unApartado peliculaReferencia unaPelicula = unApartado peliculaReferencia == unApartado unaPelicula
+
+cumpleTodos :: [Criterio] -> Pelicula -> Bool
+cumpleTodos listaCriterios unaPelicula = all (flip cumpleCriterio unaPelicula) listaCriterios
+
+noVistas :: Usuario -> Pelicula-> Bool
+noVistas unUsuario unaPelicula = elem unaPelicula (vistas unUsuario) 
+
+peliculasPropuestas :: Usuario -> [Criterio] -> [Pelicula]
+peliculasPropuestas unUsuario listaCriterios = (take 3 . filter (noVistas unUsuario) . filter (cumpleTodos listaCriterios)) peliculasEmpresa
+
+data Capitulo = Capitulo {
+nombreCap :: String,
+generoCap :: String,
+duracionCap :: Number,
+origenCap :: String,
+impactoCap :: (Usuario -> Usuario)
+} deriving (Show,Eq)
+
+consumirCapitulo :: Capitulo -> Usuario -> Usuario
+consumirCapitulo unCaptiulo unUsuario = (impactoCap unCaptiulo) unUsuario
+
+impactoRedWedding :: Usuario -> Usuario
+impactoRedWedding unUsuario = unUsuario { salud = 10}
+
+redWedding = Capitulo "Red Wedding" "Drama-Accion" 50 "Inglaterra" impactoRedWedding  
+
+-- consumirCapitulo redWedding juan
+
+maraton :: Usuario -> [Capitulo] -> Usuario
+maraton unUsuario listaCapitulos = foldl (flip consumirCapitulo) unUsuario listaCapitulos
+
+-- serieInfinita = cycle [redWedding]
+
+-- miraNCaps n unUsuario unaSerie = maraton unUsuario (take n listaCapitulos)
+
+
+
+
+
+
+
+
+

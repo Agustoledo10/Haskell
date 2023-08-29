@@ -1,0 +1,95 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+import Prelude (Float)
+
+data Pais = Pais {
+ingresoPerCapita :: Number,
+activaPublico :: Number,
+activaPrivado :: Number,
+recursosNaturales :: [String],
+deudaFMI :: Number
+} deriving (Show,Eq)
+
+type Estrategia = Pais -> Pais
+
+porcentaje :: Number -> Number -> Number
+porcentaje unPorcentaje unTotal = ((/100).(*unTotal)) unPorcentaje
+
+modificarDeuda :: (Number -> Number) -> Pais -> Pais
+modificarDeuda unaModificacion unPais = unPais {deudaFMI = (unaModificacion . deudaFMI) unPais}
+
+prestamoNMillones :: Number -> Estrategia
+prestamoNMillones unaCantidad unPais = modificarDeuda (+(unaCantidad + (porcentaje 50 unaCantidad))) unPais
+
+modificarIPR :: (Number -> Number) -> Pais -> Pais
+modificarIPR unaModificacion unPais = unPais {ingresoPerCapita = (unaModificacion .ingresoPerCapita) unPais}
+
+despedirActivosPublicos :: Number -> Pais -> Pais
+despedirActivosPublicos unaCantidad unPais = unPais { activaPublico = (activaPublico unPais) - unaCantidad}
+
+reducirSectorPublico :: Number -> Estrategia
+reducirSectorPublico unaCantidad unPais | ((>100) . activaPublico) unPais = (despedirActivosPublicos unaCantidad . modificarIPR (flip (-) (porcentaje 20 (ingresoPerCapita unPais)))) unPais
+                                        | otherwise = (despedirActivosPublicos unaCantidad . modificarIPR (flip (-) (porcentaje 15 (ingresoPerCapita unPais)))) unPais
+
+quitarRecurso :: String ->  Pais -> Pais 
+quitarRecurso unRecurso unPais = unPais {recursosNaturales = (filter (/= unRecurso) . recursosNaturales) unPais}
+
+cederEmpresa :: String -> Estrategia
+cederEmpresa unRecurso unPais = (modificarDeuda (flip (-) 2) . quitarRecurso unRecurso) unPais
+
+poblacionActiva :: Pais -> Number
+poblacionActiva unPais = (activaPrivado unPais) + (activaPublico unPais)
+
+pbi :: Pais -> Number
+pbi unPais = (ingresoPerCapita unPais) * (poblacionActiva unPais)
+
+establecerBlindaje :: Estrategia
+establecerBlindaje unPais = (reducirSectorPublico 500 . prestamoNMillones (div (pbi unPais) 2)) unPais
+
+namibia :: Pais
+namibia = Pais 4140 400000 650000 ["mineria","ecoturismo"] 50
+
+type Receta = [Estrategia]
+
+recetaEj :: Receta
+recetaEj = [prestamoNMillones 200, cederEmpresa "mineria"]
+
+aplicarReceta :: Pais -> Receta -> Pais
+aplicarReceta unPais unaReceta = foldl (flip ($)) unPais unaReceta
+
+tienePetroleo :: Pais -> Bool
+tienePetroleo unPais = elem "petroleo" . recursosNaturales $ unPais
+
+puedenZafar :: [Pais] -> [Pais]
+puedenZafar listaPaises = filter (tienePetroleo) listaPaises
+
+deudaFavorFmi :: [Pais] -> Number
+deudaFavorFmi listaPaises = (sum . map deudaFMI) listaPaises
+
+estaOrdenada _ [a] = True
+estaOrdenada f (x:y:ys) | f x < f y = estaOrdenada f (y:ys)
+                        | otherwise = False
+ 
+recetasOrdenadas :: [Receta] -> Pais -> Bool
+recetasOrdenadas listaRecetas unPais = estaOrdenada (pbi . aplicarReceta unPais) listaRecetas
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

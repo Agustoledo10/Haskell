@@ -1,0 +1,111 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Turista = Turista {
+cansancio :: Number,
+stress :: Number,
+solo :: Bool,
+idiomas :: [String]
+} deriving (Show,Eq)
+
+ana = Turista 0 21 False ["español"]
+
+beto = Turista 15 15 True ["aleman"]
+
+cathi = Turista 15 15 True ["aleman","catalan"]
+
+type Excursion = Turista -> Turista
+
+irPlaya :: Excursion
+irPlaya unTurista | (solo unTurista) = unTurista {cansancio = (cansancio unTurista) -5}
+                  | otherwise = unTurista {stress = (stress unTurista) - 1}
+
+apreciarElemento :: String -> Excursion
+apreciarElemento elemento unTurista = unTurista {stress = (stress unTurista) - (length elemento)}
+
+salirAHablar :: String -> Excursion
+salirAHablar idioma unTurista = unTurista {solo = False, idiomas = (idiomas unTurista) ++ [idioma]}
+
+intensidadCaminata :: Number -> Number 
+intensidadCaminata minutos = div minutos 4 
+
+caminar :: Number -> Excursion
+caminar minutos unTurista = unTurista {stress = (stress unTurista) - intensidadCaminata minutos , cansancio = (cansancio unTurista) + intensidadCaminata minutos }
+
+data Marea = Fuerte | Moderada | Tranquila 
+
+paseoEnBarco :: Marea -> Excursion
+paseoEnBarco Fuerte unTurista = unTurista {stress = (stress unTurista) + 6, cansancio = (stress unTurista) + 10}
+paseoEnBarco Moderada unTurista = id unTurista
+paseoEnBarco Tranquila unTurista = foldl (flip ($)) unTurista [salirAHablar "aleman",apreciarElemento "mar",caminar 10]
+
+reducirStress :: Turista -> Turista 
+reducirStress unaPersona = unaPersona { stress = (stress unaPersona) - ((stress unaPersona) * (0.1))}
+
+haceExcursion :: Excursion -> Turista -> Turista
+haceExcursion unaExcursion unTurista = reducirStress (unaExcursion unTurista)
+
+deltaSegun :: (a -> Number) -> a -> a -> Number
+deltaSegun f algo1 algo2 = f algo1 - f algo2
+
+deltaExcursionSegun :: (Turista -> Number) -> Turista -> Excursion -> Number
+deltaExcursionSegun indice unTurista unaExcursion = deltaSegun indice (haceExcursion unaExcursion unTurista) unTurista 
+
+esEducativa :: Excursion -> Turista -> Bool
+esEducativa unaExcursion unTurista = 0 > deltaExcursionSegun (length.idiomas) unTurista unaExcursion
+
+esDesestresante :: Turista -> Excursion -> Bool
+esDesestresante unTurista unaExcursion = (-3) >= deltaExcursionSegun (stress) unTurista unaExcursion
+
+excursionesDesestresantes :: [Excursion] -> Turista -> [Excursion]
+excursionesDesestresantes listaExcursiones unTurista = filter (esDesestresante unTurista) listaExcursiones 
+
+type Tour = [Excursion]
+
+completo :: Tour
+completo = [caminar 20, apreciarElemento "cascada",caminar 40, salirAHablar "melmacquiano"]
+
+ladob :: Excursion -> Tour
+ladob unaExcursion= [paseoEnBarco Tranquila,unaExcursion,caminar 120]
+
+excursionIslaVecina :: Marea -> Excursion
+excursionIslaVecina Fuerte = apreciarElemento "lago"
+excursionIslaVecina otro = irPlaya
+
+islaVecina :: Marea -> Tour 
+islaVecina marea = [paseoEnBarco marea,excursionIslaVecina marea,paseoEnBarco marea]
+
+stressLargoTour :: Tour -> Turista -> Turista
+stressLargoTour unTour unTurista = unTurista { stress = (stress unTurista) + (length unTour)}
+
+haceTour :: Turista -> Tour -> Turista
+haceTour unTurista unTour = foldl (flip (haceExcursion)) (stressLargoTour unTour unTurista) unTour
+
+dejaAcompaniado :: Turista -> Excursion -> Bool
+dejaAcompaniado unTurista unaExcursion = (not.solo.flip haceExcursion unTurista) unaExcursion
+
+esTourConvincente :: Turista -> Tour -> Bool
+esTourConvincente unTurista unTour = (any (dejaAcompaniado unTurista) . flip excursionesDesestresantes unTurista) unTour 
+
+algunTourConvincente :: [Tour] -> Turista -> Bool
+algunTourConvincente listaTours unTurista = any (esTourConvincente unTurista) listaTours  
+
+espiritualidad unTour unTurista = deltaSegun (stress) unTurista (haceTour unTurista unTour) + deltaSegun (cansancio) unTurista (haceTour unTurista unTour)
+
+efectividadTour :: Tour -> [Turista] -> Number
+efectividadTour unTour listaTuristas = (sum . map (espiritualidad unTour). filter (flip esTourConvincente unTour)) listaTuristas
+
+
+
+
+
+
+
+
+
+
+
+
+
+

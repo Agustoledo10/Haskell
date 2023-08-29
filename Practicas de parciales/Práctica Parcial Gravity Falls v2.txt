@@ -1,0 +1,68 @@
+data Persona = Persona {
+edadPersona :: Number,
+listaItems :: [String],
+nivelExperiencia :: Number
+} deriving (Show,Eq)
+
+data Criatura = Criatura {
+nivelPeligrosidad :: Number,
+condicionDeshacerse :: Persona -> Bool
+}  deriving (Show,Eq)
+
+imposibleDeshacerse :: Persona -> Bool
+imposibleDeshacerse unaPersona = False
+
+siempreDetras :: Criatura
+siempreDetras = Criatura 0 imposibleDeshacerse
+
+tieneItem :: String -> Persona -> Bool
+tieneItem unItem unaPersona = (elem unItem . listaItems) unaPersona
+
+gnomos :: Number -> Criatura
+gnomos unaCantidad = Criatura (2^unaCantidad) (tieneItem "soplador de hojas")
+
+fantasma :: Number -> (Persona -> Bool) -> Criatura
+fantasma unaCategoria unAsuntoPendiente = Criatura (unaCategoria*20) unAsuntoPendiente
+
+sumaExperiencia :: Number -> Persona -> Persona
+sumaExperiencia unaCantidad unaPersona = unaPersona {nivelExperiencia = ((+unaCantidad) . nivelExperiencia) unaPersona}
+
+seEnfrentaCriatura :: Criatura -> Persona -> Persona
+seEnfrentaCriatura unaCriatura unaPersona | (condicionDeshacerse unaCriatura) unaPersona = sumaExperiencia (nivelPeligrosidad unaCriatura) unaPersona
+
+diferenciaDeExperiencia :: Persona -> Persona -> Number
+diferenciaDeExperiencia unaPersona personaDpsEnfrentamientos = (nivelExperiencia personaDpsEnfrentamientos) - (nivelExperiencia unaPersona)
+
+experienciaAcumulada :: Persona -> [Criatura] -> Number
+experienciaAcumulada unaPersona listaCriaturas = (diferenciaDeExperiencia unaPersona . foldl (flip seEnfrentaCriatura) unaPersona ) listaCriaturas
+
+ejConsulta :: [Criatura]
+ejConsulta = [gnomos 10, fantasma 3  (\unaPersona -> tieneItem "disfraz de oveja" unaPersona && ((<13). edadPersona) unaPersona), fantasma 1 (\ unaPersona -> ((>10).nivelExperiencia) unaPersona)]
+
+zipWithIf :: (a -> b -> b) -> (b -> Bool) -> [a] -> [b] -> [b] 
+zipWithIf _ _ _ [] = []
+zipWithIf _ _ [] l = l
+zipWithIf unaFuncion unaCondicion (x:xs) (y:ys) | unaCondicion y = (unaFuncion x y: zipWithIf unaFuncion unaCondicion xs ys)
+                                                | otherwise = (y: zipWithIf unaFuncion unaCondicion (x:xs) ys)
+
+abecedarioDesde :: Char -> [Char]
+abecedarioDesde unaLetra = [unaLetra .. 'z'] ++ (init ['a' .. unaLetra])
+
+desencriptarLetra :: Char -> Char -> Char
+desencriptarLetra unaClave unaLetra = letraOriginal unaLetra ['a'..'z'] (abecedarioDesde unaClave)
+
+letraOriginal :: Char -> [Char] -> [Char] -> Char
+letraOriginal unaClave (x:xs) (y:ys) | y == unaClave = x
+                                     | otherwise = letraOriginal unaClave xs ys
+
+cesar :: Char -> String -> String
+cesar unaClave textoEncriptado = zipWithIf desencriptarLetra  (flip elem ['a'..'z']) (repeat unaClave) textoEncriptado
+
+totalidadDesencripciones :: [String]
+totalidadDesencripciones = map (flip cesar "jrzel zrfaxal!") ['a' .. 'z']
+
+vigenere :: String -> String -> String
+vigenere textoClave msjEncriptado = desencriptarConTexto textoClave msjEncriptado
+
+desencriptarConTexto :: String -> String -> String
+desencriptarConTexto textoClave msjEncriptado = zipWithIf desencriptarLetra (flip elem ['a'..'z']) (cycle textoClave) msjEncriptado

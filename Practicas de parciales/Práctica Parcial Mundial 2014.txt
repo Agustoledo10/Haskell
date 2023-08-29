@@ -1,0 +1,73 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Jugador = Jugador{
+nombreJugador :: String,
+edad :: Number,
+promediogol :: Number,
+habilidad :: Number,
+cansancio :: Number
+} deriving (Show, Eq)
+
+data Equipo = Equipo{
+nombreEquipo :: String,
+grupo :: Char,
+jugadores :: [Jugador]
+} deriving (Show,Eq)
+
+--funcion que a partir de critterio de ordenamiento y lista devuelve version equivalente a lista pero ordenada por dicho criterio
+quickSort _ [] = [] 
+quickSort criterio (x:xs) = (quickSort criterio . filter (not . criterio x)) xs ++ [x] ++ (quickSort criterio . filter (criterio x)) xs 
+
+esJugadorFigura :: Jugador -> Bool
+esJugadorFigura unJugador = ((>75) . habilidad) unJugador && ((>0) . promediogol) unJugador
+
+figurasEquipo :: Equipo -> [Jugador]
+figurasEquipo unEquipo = filter (esJugadorFigura) $ (jugadores unEquipo)
+
+jugadoresFaranduleros :: [String]
+jugadoresFaranduleros = ["Maxi Lopez", "Icardi", "Aguero", "Caniggia", "Demichelis"]
+
+esJugadorFarandulero :: Jugador -> Bool
+esJugadorFarandulero unJugador = elem (nombreJugador unJugador) jugadoresFaranduleros
+
+tieneFarandulero :: Equipo -> Bool
+tieneFarandulero unEquipo = any (esJugadorFarandulero) $ (jugadores unEquipo)
+
+pertenceGrupo :: Char -> Equipo -> Bool
+pertenceGrupo  unGrupo unEquipo = ((== unGrupo) . grupo ) unEquipo
+
+esJoven unJugador = ((<27) . edad) unJugador
+
+esFiguritaEspecial unJugador = esJugadorFigura unJugador && esJoven unJugador && (not.esJugadorFarandulero) unJugador
+
+figuritasDificiles listaEquipos unGrupo = (map nombreJugador . filter (esFiguritaEspecial) . foldl (++) [] . map (jugadores) . filter (pertenceGrupo unGrupo)) listaEquipos
+
+aumentoPorcentual total porciento = (porciento * 100) / total 
+
+jugadorJuegaPartido :: Jugador -> Jugador
+jugadorJuegaPartido unJugador | (not.esJugadorFarandulero) unJugador && esJoven unJugador && esJugadorFigura unJugador = unJugador{cansancio = 50}
+                              | esJoven unJugador = unJugador{cansancio = (cansancio unJugador) + (aumentoPorcentual (cansancio unJugador) 10)}
+                              | (not . esJoven) unJugador && esJugadorFigura unJugador = unJugador{cansancio = 20}
+                              | otherwise = unJugador {cansancio = (cansancio unJugador)*2}
+
+cansarJugadores :: [Jugador] -> [Jugador]
+cansarJugadores jugadoresEquipo = map jugadorJuegaPartido jugadoresEquipo
+
+jugarPartido :: Equipo -> Equipo
+jugarPartido unEquipo = unEquipo{jugadores = cansarJugadores (jugadores unEquipo)}
+
+nivelCansancio jugador1 jugador2 = cansancio jugador1 < cansancio jugador2 
+
+promedioGol equipo = (sum . map(promediogol). take 11 . quickSort(nivelCansancio) . jugadores) equipo
+
+ganadorPartido equipo1 equipo2 | promedioGol equipo1 > promedioGol equipo2 = equipo1
+                               | otherwise = equipo2
+
+jueganPartido equipo1 equipo2 = jugarPartido (ganadorPartido equipo1 equipo2)
+
+campeonTorneo grupoEquipos = foldl1 jueganPartido grupoEquipos
+
+jugadorGroso grupoEquipos = head . figurasEquipo . campeonTorneo
+

@@ -1,0 +1,72 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Vigilante = Vigilante{
+nombreVigilante :: String,
+habilidades :: [String],
+aparicion :: Number
+} deriving (Show,Eq)
+
+muerte :: String -> Vigilante -> Bool
+muerte nombre unVigilante = ((/= nombre).nombreVigilante) unVigilante
+
+retiroDrManhattan :: Vigilante -> Bool
+retiroDrManhattan unVigilante = ((/= "Dr. Manhattan").nombreVigilante) unVigilante
+
+destruccionDeNiuShork :: [Vigilante] -> [Vigilante]
+destruccionDeNiuShork listaVigilantes = ( filter (muerte "Rorschach") . filter (retiroDrManhattan) ) listaVigilantes
+
+muereUnVigilante :: Vigilante -> [Vigilante] -> [Vigilante]
+muereUnVigilante unVigilante listaVigilantes = filter (muerte (nombreVigilante unVigilante)) listaVigilantes
+
+
+agentesDelGobierno = [("Jack Bauer","24"), ("El Comediante", "Watchmen"), ("Dr. Manhattan", "Watchmen"), ("Liam Neeson", "Taken")]
+
+sonAgentesDelGobierno :: Vigilante -> Vigilante
+sonAgentesDelGobierno unVigilante | (nombreVigilante unVigilante) == "Jack Bauer" || (nombreVigilante unVigilante) == "El Comediante" || (nombreVigilante unVigilante) == "Dr. Manhattan" || (nombreVigilante unVigilante) == "Liam Neeson" = unVigilante{habilidades = (habilidades unVigilante) ++ ["Cinismo"]}
+                                  | otherwise = unVigilante
+
+guerraVietman :: [Vigilante] -> [Vigilante]
+guerraVietman listaVigilantes = map (sonAgentesDelGobierno) listaVigilantes
+
+
+accidenteDeLaboratorio :: Number -> [Vigilante] -> [Vigilante]
+accidenteDeLaboratorio anio listaVigilantes = listaVigilantes ++ [ Vigilante "Dr. Manhattan" ["Manipulacion de materia a nivel atómico"] anio]
+
+noTieneSucesor :: [Vigilante] -> Vigilante -> Bool
+noTieneSucesor listaVigilantes unVigilante = (not.elem ((aparicion unVigilante) + 1) . map aparicion ) listaVigilantes
+
+actaDeKeene :: [Vigilante] -> [Vigilante]
+actaDeKeene listaVigilantes = filter (noTieneSucesor listaVigilantes) listaVigilantes
+
+elComediante = Vigilante "El Comediante" ["Fuerza"] 194
+
+historia = destruccionDeNiuShork . muereUnVigilante elComediante . guerraVietman . accidenteDeLaboratorio 1959 . actaDeKeene
+
+maximumBy [x] funcion = x
+maximumBy (x:y:ys) funcion | funcion x > funcion y = maximumBy (x:ys) funcion
+                           | otherwise = maximumBy (y:ys) funcion
+
+masHabilidades :: [Vigilante] -> Vigilante
+masHabilidades listaVigilantes = maximumBy listaVigilantes (length . habilidades)                          
+
+nombreDelSalvador :: [Vigilante] -> String
+nombreDelSalvador listaVigilantes = (nombreVigilante . masHabilidades . destruccionDeNiuShork) listaVigilantes
+
+nombreMasLargo :: [Vigilante] -> Vigilante
+nombreMasLargo listaVigilantes = maximumBy listaVigilantes (length . nombreVigilante)
+
+elElegido :: [Vigilante] -> String
+elElegido listaVigilantes = ( head . habilidades . nombreMasLargo . guerraVietman ) listaVigilantes
+
+minimumBy[x] funcion = x
+minimumBy (x:y:ys) funcion | funcion x < funcion y = minimumBy (x:ys) funcion
+                           | otherwise = minimumBy (y:ys) funcion
+
+masAntiguo :: [Vigilante] -> Vigilante
+masAntiguo listaVigilantes = minimumBy listaVigilantes aparicion
+
+elPatriarca :: [Vigilante] -> Number
+elPatriarca listaVigilantes = ( aparicion . masAntiguo . actaDeKeene) listaVigilantes
+ 

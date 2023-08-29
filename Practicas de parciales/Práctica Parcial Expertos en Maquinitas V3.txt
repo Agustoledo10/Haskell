@@ -1,0 +1,92 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Factor = (String,Number)
+
+data Persona = Persona {
+nombre :: String,
+dinero :: Number,
+suerte :: Number,
+factores :: [Factor]
+} deriving (Show,Eq)
+
+nombreFactor :: Factor -> String
+nombreFactor = fst
+
+valorFactor :: Factor -> Number
+valorFactor = snd
+
+esAmuleto :: Factor -> Bool
+esAmuleto unFactor = ((== "amuleto") . nombreFactor) unFactor
+
+esAmuletoValido :: Factor -> Bool
+esAmuletoValido unFactor = ((/= 0) . valorFactor) unFactor && esAmuleto unFactor
+
+tieneAmuletoValido :: Persona -> Bool
+tieneAmuletoValido unaPersona = (any (esAmuletoValido) . factores) unaPersona
+
+suerteTotal :: Persona -> Number
+suerteTotal unaPersona | tieneAmuletoValido unaPersona = (valorFactor . head . filter esAmuleto .factores) unaPersona * (suerte unaPersona)
+                       | otherwise = (suerte unaPersona)
+
+type Criterio = Persona -> Bool
+
+data Juego = Juego {
+nombreJuego :: String,
+dineroAGanar :: (Number -> Number),
+criterios :: [Criterio]
+} deriving (Show,Eq)
+
+nico = (Persona "Nico" 100.0 30 [("amuleto", 3), ("manos magicas",100)])
+maiu = (Persona "Maiu" 100.0 42 [("inteligencia",55), ("paciencia",50)])
+
+
+suerteTotalMayorA :: Number -> Persona -> Bool
+suerteTotalMayorA unNumero unaPersona = ((>unNumero) . suerteTotal) unaPersona
+
+ruleta :: Juego
+ruleta = Juego "Ruleta" (*37) [suerteTotalMayorA 80]
+
+esPaciencia :: String -> Bool
+esPaciencia unFactor = "paciencia" == unFactor
+
+esPaciente :: Persona -> Bool
+esPaciente unaPersona = (any (esPaciencia) . map nombreFactor . factores) unaPersona
+
+maquinita :: Number -> Juego
+maquinita jackpot = Juego "Maquinita" (+jackpot) [suerteTotalMayorA 95,esPaciente]
+
+puedeGanar :: Persona -> Juego -> Bool
+puedeGanar unaPersona unJuego = (all (flip ($) unaPersona) . criterios) unJuego
+
+juegosQueGana :: [Juego] -> Persona ->  [Juego]
+juegosQueGana listaJuegos unaPersona = filter (puedeGanar unaPersona) listaJuegos
+
+dineroQueGana :: Persona -> Number -> [Juego] -> Number
+dineroQueGana unJugador unaApuesta listaJuegos = (foldl (flip ($)) unaApuesta . map dineroAGanar) listaJuegos
+
+cantidadDineroConsigue :: Persona -> Number -> [Juego] -> Number
+cantidadDineroConsigue unJugador unaApuesta listaJuegos | any (puedeGanar unJugador) listaJuegos = ((dineroQueGana unJugador unaApuesta) . juegosQueGana listaJuegos) unJugador 
+                                                        | otherwise = unaApuesta
+
+noGanaNinguno :: [Juego] -> Persona -> Bool
+noGanaNinguno listaJuegos unaPersona = all ((not . puedeGanar unaPersona)) listaJuegos
+
+listaPerdedores :: [Persona] -> [Juego] -> [String]
+listaPerdedores listaPersonas listaJuegos = (map nombre . filter (noGanaNinguno listaJuegos)) listaPersonas
+
+modificarSuSueldo :: Persona -> (Number -> Number) -> Persona
+modificarSuSueldo unaPersona unaModificacion = unaPersona {dinero = unaModificacion (dinero unaPersona)}
+
+bajaSuSueldo :: Number -> Persona  ->  Persona
+bajaSuSueldo unaApuesta unaPersona = modificarSuSueldo unaPersona (flip (-) unaApuesta)
+
+juegaJuego :: Juego -> Number -> Persona -> Persona
+juegaJuego unJuego unaApuesta unaPersona | puedeGanar unaPersona unJuego = modificarSuSueldo unaPersona ((+).(dineroAGanar unJuego) $ unaApuesta) 
+                                         | otherwise = unaPersona
+
+personaApuestaCantidad :: Number -> Persona -> Juego -> Persona
+personaApuestaCantidad unaApuesta unaPersona unJuego = (juegaJuego unJuego unaApuesta. bajaSuSueldo unaApuesta) unaPersona
+
+

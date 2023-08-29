@@ -1,0 +1,85 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+import Prelude (Float)
+
+data Aspecto = Aspecto {
+tipoDeAspecto :: String,
+grado :: Number
+} deriving (Show, Eq)
+
+mejorAspecto mejor peor = grado mejor < grado peor
+mismoAspecto aspecto1 aspecto2 = tipoDeAspecto aspecto1 == tipoDeAspecto aspecto2
+buscarAspecto aspectoBuscado = head.filter (mismoAspecto aspectoBuscado)
+buscarAspectoDeTipo tipo = buscarAspecto (Aspecto tipo 0)
+reemplazarAspecto aspectoBuscado situacion =
+    aspectoBuscado : (filter (not.mismoAspecto aspectoBuscado) situacion)
+
+
+type Situacion = [Aspecto]
+
+modificarAspecto :: (Number -> Number) -> Aspecto -> Aspecto
+modificarAspecto unaFuncion unAspecto = unAspecto {grado = (unaFuncion . grado ) unAspecto }
+
+esMejorAspecto :: Situacion -> Aspecto -> Bool
+esMejorAspecto unaSituacion unAspecto = mejorAspecto (buscarAspectoDeTipo (tipoDeAspecto unAspecto) unaSituacion) unAspecto
+
+situacionMejorQueOtra :: Situacion -> Situacion -> Bool
+situacionMejorQueOtra unaSituacion otraSituacion = all (esMejorAspecto unaSituacion) otraSituacion
+
+modificarAspectoBuscado :: (Number -> Number) -> String -> Aspecto -> Aspecto
+modificarAspectoBuscado unaFuncion aspectoBuscado unAspecto | (tipoDeAspecto unAspecto) == aspectoBuscado = modificarAspecto unaFuncion unAspecto
+                                                            | otherwise = unAspecto
+
+modificarSituacion :: String -> (Number -> Number) -> Situacion -> Situacion
+modificarSituacion unAspecto unaFuncion unaSituacion = map (modificarAspectoBuscado unaFuncion unAspecto) unaSituacion
+
+type Personalidad = (Situacion -> Situacion)
+
+data Gema = Gema {
+nombreGema :: String,
+fuerzaGema :: Number,
+personalidadGema :: Personalidad
+} deriving (Show,Eq)
+
+vidente :: Personalidad
+vidente unaSituacion = (modificarSituacion "tension" (flip (-) 10) . modificarSituacion "incertidumbre" (/2) ) unaSituacion
+
+relajada :: Number -> Personalidad
+relajada nivelRelajamiento unaSituacion = (modificarSituacion "peligro" (+nivelRelajamiento) . modificarSituacion "tension" (flip (-) 30)) unaSituacion
+
+afrontaSituacion :: Personalidad -> Personalidad
+afrontaSituacion unaPersonalidad unaSituacion = unaPersonalidad unaSituacion
+
+mayorSegun f a b | f a > f b = a
+                 | otherwise = b
+
+gemaGanaAOtra :: Situacion -> Gema -> Gema -> Bool
+gemaGanaAOtra unaSituacion unaGema otraGema = ((== (nombreGema unaGema)) . nombreGema. mayorSegun fuerzaGema unaGema) otraGema && situacionMejorQueOtra (flip afrontaSituacion unaSituacion . personalidadGema $ unaGema) (flip afrontaSituacion unaSituacion  . personalidadGema $ otraGema)
+
+nombreFusion :: Gema -> Gema -> String
+nombreFusion unaGema otraGema | (nombreGema unaGema) == (nombreGema otraGema) = nombreGema unaGema
+                              | otherwise = (nombreGema unaGema) ++ (nombreGema otraGema)
+
+personalidadFusion :: Gema -> Gema -> Personalidad
+personalidadFusion unaGema otraGema = (personalidadGema otraGema . personalidadGema unaGema . map (modificarAspecto (flip (-) 10)))
+
+gemaDominante :: Situacion -> Gema -> Gema -> Gema
+gemaDominante unaSituacion unaGema otraGema | gemaGanaAOtra unaSituacion unaGema otraGema = unaGema
+                                            | otherwise = otraGema
+
+sonCompatibles :: Situacion -> Gema -> Gema -> Bool
+sonCompatibles unaSituacion unaGema otraGema = situacionMejorQueOtra (flip afrontaSituacion unaSituacion . personalidadFusion unaGema $ otraGema) (flip afrontaSituacion unaSituacion . personalidadGema $ unaGema) && situacionMejorQueOtra (flip afrontaSituacion unaSituacion . personalidadFusion unaGema $ otraGema) (flip afrontaSituacion unaSituacion . personalidadGema $ otraGema)
+
+fuerzaFusion :: Situacion ->  Gema -> Gema -> Number
+fuerzaFusion unaSituacion unaGema otraGema | sonCompatibles unaSituacion unaGema otraGema = ((*10) . (+) (fuerzaGema unaGema) . fuerzaGema) otraGema
+                                           | otherwise = ((*7) . fuerzaGema . gemaDominante unaSituacion unaGema) otraGema 
+
+fusion :: Situacion -> Gema -> Gema -> Gema
+fusion unaSituacion unaGema otraGema = Gema (nombreFusion unaGema otraGema) (fuerzaFusion unaSituacion unaGema otraGema) (personalidadFusion unaGema otraGema) 
+
+fusionGrupal :: Situacion -> [Gema] -> Gema
+fusionGrupal unaSituacion listaGemas = foldl1 (fusion unaSituacion) listaGemas
+
+-- foo :: Eq b => a -> (a -> b) -> (c -> [b]) -> c -> Bool
+foo x y z = any (== y x).z

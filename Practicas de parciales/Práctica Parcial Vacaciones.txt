@@ -1,0 +1,97 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+-- Vacaciones
+
+data Turista = Turista {
+cansancio :: Number,
+stress :: Number,
+solo :: Bool,
+idiomas :: [String]    
+} deriving (Show,Eq)
+
+ana :: Turista
+ana =
+  Turista { cansancio = 0 , stress = 20, solo = False, idiomas = ["espaniol"] }
+
+beto :: Turista
+beto =
+  Turista { cansancio = 15, stress = 15, solo = True, idiomas = ["aleman"] }
+
+cathi :: Turista
+cathi =
+  Turista { cansancio = 15, stress = 15, solo = True, idiomas = ["aleman", "catalan"] }
+
+type Excursion = Turista -> Turista
+irALaPlaya :: Excursion
+irALaPlaya unTurista | solo unTurista = unTurista{cansancio = (cansancio unTurista) - 5}
+                     | otherwise = unTurista{stress = (stress unTurista) -1}
+
+apreciarElemento :: String -> Excursion
+apreciarElemento elemento unTurista  = unTurista{stress = (stress unTurista) - (length elemento)}
+
+salirAHablar :: String -> Excursion
+salirAHablar idioma unTurista  = unTurista{idiomas = (idiomas unTurista) ++ [idioma],solo = False}
+
+calcularIntensidad :: Number -> Number
+calcularIntensidad minutos = (ceiling.(/4)) minutos
+
+caminar :: Number -> Excursion
+caminar minutos unTurista = unTurista{cansancio = (cansancio unTurista)+(calcularIntensidad  minutos),stress = max 0 ((stress unTurista)-(calcularIntensidad minutos)) }
+
+paseoEnBarco :: String -> Excursion
+paseoEnBarco marea unTurista | marea == "fuerte" = unTurista{stress = (stress unTurista)+6, cansancio = (cansancio unTurista) + 10}
+                             | marea == "tranquila" = (salirAHablar "aleman".apreciarElemento "mar".caminar 10) unTurista
+                             | otherwise = id unTurista
+
+
+
+reducirStress unTurista = unTurista{stress = (stress unTurista) - ((1/10)*(stress unTurista))}
+
+elijeActividad :: Excursion -> Excursion
+elijeActividad excursion turista = (reducirStress.excursion) turista 
+
+deltaSegun :: (a -> Number) -> a -> a -> Number
+deltaSegun f algo1 algo2 = f algo1 - f algo2
+
+deltaExcursionSegun indice turista excursion = deltaSegun indice (elijeActividad excursion turista)  turista 
+
+idiomasAprendidos unTurista = length (idiomas unTurista)
+
+esEducativa idiomasAprendidos unTurista excursion = 0 < deltaExcursionSegun idiomasAprendidos unTurista excursion
+
+excursionDesestresante unTurista excursion = -3 >= deltaExcursionSegun stress unTurista excursion
+
+type Tours = [Excursion]
+
+tourCompleto = [salirAHablar "melmacquiano",caminar 40,apreciarElemento "cascada",caminar 20]
+
+tourLadoB excursion = [paseoEnBarco "tranquila",excursion, caminar 120]
+
+islavecina marea | marea == "fuerte" = [paseoEnBarco marea, apreciarElemento "lago"]  
+                 | otherwise = [paseoEnBarco marea, irALaPlaya]
+
+aumentoStressTour tour unTurista = unTurista{stress = (stress unTurista) + (length tour)}
+
+aplico v f = f v
+
+pam funciones valor  = map (aplico valor) funciones 
+
+haceTour unTurista tour = foldl (flip elijeActividad) (aumentoStressTour tour unTurista) tourCompleto
+
+vuelveAcompañado unTurista excursion = (not . solo . elijeActividad excursion) unTurista
+
+convence turista excursion = vuelveAcompañado turista excursion && excursionDesestresante turista excursion
+
+tourConvincente turista tour = any (convence turista) tour
+
+
+deltaStressCans unTurista tour = (deltaSegun stress (haceTour unTurista tour) unTurista) + (deltaSegun cansancio (haceTour unTurista tour) unTurista)
+
+espiritualidad tour unTurista = (negate. deltaStressCans unTurista) tour
+
+efectividadTour tour = sum .map (espiritualidad tour).filter (flip tourConvincente tour)
+
+
+

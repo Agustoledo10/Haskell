@@ -1,0 +1,110 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Turista = Turista{
+stress :: Number,
+cansancio :: Number,
+solo :: Bool,
+idiomas:: [String]
+} deriving (Show,Eq)
+
+-- Construir un tour donde se visiten infinitas playas.
+--¿Se puede saber si ese tour es convincente para Ana? ¿Y con Beto? Justificar.
+-- 
+
+ana = Turista 21 0 False ["espaniol"]
+
+beto = Turista 15 15 True ["aleman"]
+
+cahti = Turista 15 15 True ["aleman","catalan"]
+
+type Excursion = Turista -> Turista
+
+modificarStress :: Number -> Turista -> Turista
+modificarStress unaCantidad unTurista = unTurista {stress = max ((stress unTurista) + unaCantidad) 0 }
+
+modificarCansancio :: Number -> Turista -> Turista
+modificarCansancio unaCantidad unTurista = unTurista {cansancio = max ((cansancio unTurista) + unaCantidad) 0 }
+
+irAPlaya :: Excursion
+irAPlaya unTurista | (not . solo) unTurista = modificarStress (-5) unTurista
+                   | otherwise = modificarCansancio (-1) unTurista
+
+
+apreciarAlgunElemento :: String -> Excursion
+apreciarAlgunElemento unElemento unTurista = modificarStress (negate . length $ unElemento) unTurista
+
+aprendeElIdioma :: String -> Turista -> Turista
+aprendeElIdioma unIidoma unTurista = unTurista {idiomas = (idiomas unTurista) ++ [unIidoma]}
+
+esAcompaniado :: Turista -> Turista
+esAcompaniado unTurista = unTurista { solo = False}
+
+salirAHablarUnIdioma :: String -> Excursion
+salirAHablarUnIdioma unIdioma unTurista = (esAcompaniado . aprendeElIdioma unIdioma) unTurista
+
+nivelIntensidad :: Number -> Number
+nivelIntensidad unaDuracion = div unaDuracion 4 
+
+caminar :: Number -> Excursion
+caminar unaDuracion unTurista = (modificarStress (negate . nivelIntensidad $ unaDuracion) . modificarCansancio (nivelIntensidad unaDuracion)) unTurista
+
+data Marea = Fuerte | Moderada | Tranquila deriving (Show,Eq)
+
+paseoEnBarco :: Marea -> Excursion
+paseoEnBarco nivelMarea unTurista | nivelMarea == Fuerte = (modificarStress 6 . modificarCansancio 10) unTurista
+                                  | nivelMarea == Moderada = unTurista
+                                  | nivelMarea == Tranquila = (salirAHablarUnIdioma "aleman" . apreciarAlgunElemento "mar" . caminar 10) unTurista
+
+modificarStressPorcentual :: Number -> Turista -> Turista
+modificarStressPorcentual unPorcentaje unTurista = unTurista {stress = (stress unTurista) + ((/100).(*(stress unTurista)) $ unPorcentaje)}
+
+haceExcursion :: Excursion -> Excursion
+haceExcursion unaExcursion unTurista = (modificarStressPorcentual (-10). unaExcursion) unTurista
+
+deltaSegun :: (a -> Number) -> a -> a -> Number
+deltaSegun f algo1 algo2 = f algo1 - f algo2
+
+deltaExcursionSegun :: (Turista -> Number) -> Turista -> Excursion -> Number
+deltaExcursionSegun unIndice unTurista unaExcursion = deltaSegun unIndice (haceExcursion unaExcursion unTurista) unTurista
+
+esEducativa :: Excursion -> Turista -> Bool
+esEducativa unaExcursion unTurista = ((>0) . deltaExcursionSegun (length . idiomas) unTurista) unaExcursion
+
+esDesestresante :: Excursion -> Turista -> Bool
+esDesestresante unaExcursion unTurista = ((>= 3) . deltaExcursionSegun stress unTurista) unaExcursion
+
+type Tour = [Excursion]
+
+completo :: Tour
+completo = [caminar 20, apreciarAlgunElemento "cascada",caminar 40,irAPlaya,salirAHablarUnIdioma "melmacquiano"]
+
+ladoB :: Excursion -> Tour
+ladoB unaExcursion = [paseoEnBarco Tranquila,unaExcursion,caminar 120]
+
+islaVecina :: Marea -> Tour
+islaVecina unaMarea  | unaMarea == Fuerte = [paseoEnBarco unaMarea,apreciarAlgunElemento "lago",paseoEnBarco unaMarea]
+                     | otherwise = [paseoEnBarco unaMarea,irAPlaya,paseoEnBarco unaMarea]
+
+haceTour :: Turista -> Tour -> Turista
+haceTour unTurista unTour = foldl (flip haceExcursion) (modificarStress (length unTour) unTurista) unTour 
+
+condicionesConvincente :: Turista -> Excursion -> Bool
+condicionesConvincente unTurista unaExcursion = (not . solo . haceExcursion unaExcursion) unTurista && esDesestresante unaExcursion unTurista
+
+esConvincente :: Turista -> Tour -> Bool
+esConvincente unTurista unTour = any (condicionesConvincente unTurista) unTour 
+
+algunoEsConvincente :: Turista -> [Tour] -> Bool
+algunoEsConvincente unTurista listaTours = any (esConvincente unTurista) listaTours 
+
+cantidadPerdida :: (Turista -> Number) -> Tour -> Turista -> Number
+cantidadPerdida unApartado unTour unTurista = (sum . map (deltaExcursionSegun unApartado unTurista)) unTour
+
+espiritualidad :: Tour -> Turista -> Number
+espiritualidad unTour unTurista = (cantidadPerdida stress unTour unTurista) + (cantidadPerdida cansancio unTour unTurista)
+
+efectividadTour :: [Turista] -> Tour -> Number
+efectividadTour listaTuristas unTour = (sum . map (espiritualidad unTour) . filter (flip esConvincente unTour)) listaTuristas
+

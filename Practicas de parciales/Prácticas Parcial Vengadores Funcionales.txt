@@ -1,0 +1,91 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Personaje = Personaje {nombre::String, ataqueFavorito::Personaje->Personaje, elementos::[String], energia::Number}
+
+hulk = Personaje "hulk" superFuerza ["pantalones"] 90
+thor = Personaje "thor" (relampagos 50) ["mjolnir"] 100
+viuda = Personaje "viuda negra" artesMarciales [] 90
+capitan = Personaje "capitán américa" arrojarEscudo ["escudo"] 80
+
+av = [hulk,thor,viuda]
+
+empiezaConRobot :: String -> Bool
+empiezaConRobot unNombre = ((=="robot").head.words) unNombre
+
+esRobot :: Personaje -> Bool
+esRobot unPersonaje = empiezaConRobot (nombre unPersonaje)
+
+poseeElemento :: String -> Personaje -> Bool
+poseeElemento unElemento unPersonaje = elem unElemento (elementos unPersonaje)
+
+potenciaPersonaje :: Personaje -> Number
+potenciaPersonaje unPersonaje = (energia unPersonaje)*((length.elementos) unPersonaje)
+
+segundoPersonajeDpsAtaque :: Personaje -> Personaje -> Personaje
+segundoPersonajeDpsAtaque personaje1 personaje2 = (ataqueFavorito personaje1) personaje2
+
+primerPersonajeDpsAtaque :: Personaje -> Personaje -> Personaje
+primerPersonajeDpsAtaque personaje2 personaje1 = (ataqueFavorito personaje2) personaje1
+
+mayorEnergia :: Personaje -> Personaje -> Personaje
+mayorEnergia personaje1 personaje2 | (energia personaje1) > (energia personaje2) = personaje1
+                                   | otherwise = personaje2
+
+enfrentamientoPersonaje :: Personaje -> Personaje -> Personaje
+enfrentamientoPersonaje personaje1 personaje2 = mayorEnergia (segundoPersonajeDpsAtaque personaje1 personaje2) (primerPersonajeDpsAtaque (segundoPersonajeDpsAtaque personaje1 personaje2) personaje1)
+
+type Ataque = Personaje -> Personaje 
+
+modificarEnergia :: Number -> Ataque
+modificarEnergia numero unPersonaje = unPersonaje{ energia = (energia unPersonaje) - numero}
+
+superFuerza :: Ataque
+superFuerza unPersonaje = modificarEnergia (energia unPersonaje) unPersonaje 
+
+relampagos :: Number -> Ataque
+relampagos numero unPersonaje = modificarEnergia numero unPersonaje
+
+arqueria :: Ataque
+arqueria unPersonaje | elem "esucudo" (elementos unPersonaje) = unPersonaje
+                     | otherwise = superFuerza unPersonaje
+
+proyectarRayos :: Number -> Ataque
+proyectarRayos numero unPersonaje = relampagos numero unPersonaje
+
+arrojarEscudo :: Ataque
+arrojarEscudo unPersonaje = unPersonaje { elementos = []}
+
+artesMarciales :: Ataque
+artesMarciales unPersonaje = unPersonaje{ataqueFavorito = id}
+
+ironia :: Ataque -> Ataque
+ironia unBeneficio unPersonaje = unPersonaje{ataqueFavorito = unBeneficio}
+
+listaObjetos :: [Personaje] -> [String]
+listaObjetos unPersonaje = (concat . map elementos) unPersonaje
+
+esGema :: String -> Bool
+esGema unElemento = ((=="gema").head.words) unElemento
+
+poseeGema :: [Personaje] -> Bool
+poseeGema ejercito = (any(esGema).listaObjetos) ejercito
+
+enfrentarBandos :: [Personaje] -> [Personaje] -> [Personaje]
+enfrentarBandos bando1 bando2 = zipWith enfrentamientoPersonaje bando1 bando2
+
+cantidadDpsBatalla :: [Personaje] -> [Personaje] -> Number
+cantidadDpsBatalla obtener ignorar = ( length . filter (flip (elem) (map nombre obtener)) .map nombre . enfrentarBandos obtener) ignorar 
+
+batallaFinal :: [Personaje] -> [Personaje] -> [Personaje]
+batallaFinal avengers enemigos | poseeGema avengers && (not.poseeGema) enemigos = avengers
+                               | poseeGema enemigos && (not.poseeGema) avengers = enemigos
+                               | cantidadDpsBatalla avengers enemigos == cantidadDpsBatalla enemigos avengers = enemigos
+                               | cantidadDpsBatalla avengers enemigos < cantidadDpsBatalla enemigos avengers = enemigos
+                               | cantidadDpsBatalla avengers enemigos > cantidadDpsBatalla enemigos avengers = avengers
+
+n = [1..]
+
+ejercitoInfinito = [Personaje ("robot" ++ show n) (proyectarRayos 1)[] 100]
+

@@ -1,0 +1,91 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Propuesta = (String,String,[String],Number)
+
+nombreAlumno :: Propuesta -> String
+nombreAlumno (na,_,_,_) = na
+
+nombrePropuesta :: Propuesta -> String
+nombrePropuesta (_,np,_,_) = np
+
+habilidadesAlumno :: Propuesta -> [String]
+habilidadesAlumno (_,_,ha,_) = ha
+
+experienciaAlumno :: Propuesta -> Number
+experienciaAlumno (_,_,_,ea) = ea
+
+type Criterio = (Propuesta -> Number)
+
+type Mentor = (String,[String],Criterio)
+
+nombreMentor :: Mentor -> String
+nombreMentor (nm,_,_) = nm
+
+propuestaInteresan :: Mentor -> [String]
+propuestaInteresan (_,pi,_) = pi
+
+criterioVotacion :: Mentor -> Criterio
+criterioVotacion (_,_,cv) = cv
+
+propuestasGHC = [("franco", "detectorDeParcialesCopiados", ["definicionDeLenguajes", "parsing", "compiladores"],3),("adriel", "entornoDeProgramacionHechoEnHaskell", ["programacionFuncional", "monadas", "tiposDeDatosPropios"],2)]
+
+mentoresGHC = [("carlono", ["detectorDeParcialesCopiados","mejorarPerformanceDelMotor"], (\propuesta -> (length.habilidadesAlumno) propuesta + (experienciaAlumno propuesta))),("nicolas",["entornoDeProgramacionHechoEnHaskell", "extensionesDelLenguaje"],((3+).experienciaAlumno))]
+
+leInteresa :: Propuesta -> Mentor -> Bool
+leInteresa unaPropuesta unMentor = (elem (nombrePropuesta unaPropuesta) . propuestaInteresan) unMentor 
+ 
+
+puntosSegun :: Propuesta -> Mentor -> Number
+puntosSegun unaPropuesta unMentor | leInteresa unaPropuesta unMentor = (criterioVotacion unMentor) unaPropuesta + 1
+                                  | otherwise = (criterioVotacion unMentor) unaPropuesta
+
+puntajeTotal :: Propuesta -> [Mentor] -> Number
+puntajeTotal unaPropuesta listaMentores = (sum . map (puntosSegun unaPropuesta)) listaMentores
+
+propuestasConChance :: [Propuesta] -> [Propuesta]
+propuestasConChance listaPropuestas = filter ((>3).length.habilidadesAlumno) listaPropuestas
+
+type Resultado = (String,String,Number)
+
+resultadoFinal :: [Mentor] -> Propuesta -> Resultado
+resultadoFinal listaMentores unaPropuesta = (nombreAlumno unaPropuesta, nombrePropuesta unaPropuesta,puntajeTotal unaPropuesta listaMentores)
+
+ranking :: [Mentor] -> [Propuesta] -> [Resultado]
+ranking listaMentores listaPropuesta = map (resultadoFinal listaMentores) listaPropuesta
+
+propuestasDeInteres :: Mentor -> [Propuesta] -> [Propuesta]
+propuestasDeInteres unMentor listaPropuestas = filter (flip (leInteresa) unMentor) listaPropuestas
+
+maximoSegun :: Ord b => (a -> b) -> [a] -> a 
+maximoSegun _ [a] = a
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                      | otherwise = maximoSegun f (y:ys)
+
+resultadoConMasVotos :: [Mentor] -> [Propuesta] -> Resultado
+resultadoConMasVotos listaMentores listaPropuesta = (resultadoFinal listaMentores . maximoSegun (flip (puntajeTotal) listaMentores)) listaPropuesta
+
+nombreMasInteresadoEn :: Propuesta -> [Mentor] -> String
+nombreMasInteresadoEn unaPropuesta listaMentores = (nombreMentor . maximoSegun (puntosSegun unaPropuesta)) listaMentores 
+
+proyectoElegido :: [Mentor] -> Propuesta-> Bool
+proyectoElegido listaMentores unaPropuesta = ((>12).puntajeTotal unaPropuesta) listaMentores
+
+infoProyectoElegido :: [Mentor] -> Propuesta -> (String,String,String)
+infoProyectoElegido listaMentores unaPropuesta = (nombreAlumno unaPropuesta, nombreMasInteresadoEn unaPropuesta listaMentores,nombrePropuesta unaPropuesta)
+
+proyectosElegido :: [Mentor] -> [Propuesta] -> [(String,String,String)]
+proyectosElegido listaMentores listaPropuestas = (map (infoProyectoElegido listaMentores). filter (proyectoElegido listaMentores)) listaPropuestas
+
+-- para evitar la inflexibilidad se define un tipo de dato propuesta el cual permite tratar a las tuplas como un dato en si mismo, y en caso de agregar un nuevo parametro como el tiempo, unicamente se deberia agregar una funcion
+-- por pattern matching que facilite su acceso. 
+
+
+
+
+
+
+
+
+ 

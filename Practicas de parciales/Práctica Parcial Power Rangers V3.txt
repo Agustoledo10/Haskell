@@ -1,0 +1,85 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Persona = Persona {
+habilidadesPersona :: [String],
+esBuena :: Bool
+} deriving (Show,Eq)
+
+constEj = Persona ["programar","correr"] True
+
+data PowerRanger = PowerRanger{
+color :: String,
+habilidadesRanger :: [String],
+nivelPelea :: Number
+} deriving (Show,Eq)
+
+constEj2 = PowerRanger "Rojo" ["fuerza","volar"] 500
+
+super = repeat "Super"
+
+potenciaHabilidades :: [String] -> [String]
+potenciaHabilidades listaHabilidades = zipWith (++) super listaHabilidades
+
+letrasDeHabilidades :: [String] -> Number
+letrasDeHabilidades listaHabilidades = (sum . map length . words . concat) listaHabilidades
+
+convertirEnPowerRanger :: String -> Persona ->  PowerRanger 
+convertirEnPowerRanger unColor unaPersona = PowerRanger unColor ((potenciaHabilidades . habilidadesPersona) unaPersona) ((letrasDeHabilidades . habilidadesPersona) unaPersona)
+
+listaPersonas :: [Persona]
+listaPersonas = [jason, skull, kimberly, bulk]
+
+jason = Persona ["nadar","correr"] True
+
+kimberly = Persona ["estudiar","leer"] True
+
+skull = Persona ["mentir","matar"] False
+
+bulk = Persona ["atrapar","perseguir"] False
+
+listaColores :: [String]
+listaColores = ["rojo", "rosa", "azul"]
+
+formarEquipoRanger :: [String] -> [Persona] -> [PowerRanger]
+formarEquipoRanger listaColores listaPersonas = (zipWith convertirEnPowerRanger listaColores . filter (esBuena)) listaPersonas
+
+findOrElse :: (a -> Bool) -> a -> [a] -> a
+findOrElse _ v [] = v
+findOrElse cond valor (x:xs) | cond x = x
+                             | otherwise = findOrElse cond valor xs
+
+maximoSegun _ [a] = a
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                       | otherwise = maximoSegun f (y:ys)
+
+
+esElRojo :: PowerRanger -> Bool
+esElRojo unRanger = ((== "rojo") .color) unRanger
+
+rangerLider :: [PowerRanger] -> PowerRanger
+rangerLider equipoRanger = findOrElse esElRojo (head equipoRanger) equipoRanger
+
+rangerMasPoderoso :: [PowerRanger] -> PowerRanger
+rangerMasPoderoso equipoRanger = maximoSegun nivelPelea equipoRanger
+
+rangerHabilidoso :: PowerRanger -> Bool
+rangerHabilidoso unRanger = ((>5) . length . habilidadesRanger) unRanger
+
+ay = "ay" ++ ay
+
+alfa5 :: PowerRanger
+alfa5 = PowerRanger "metalico" ["reparar" , "decir" ++ ay] 0
+
+data ChicaSuperPoderosa = ChicaSuperPoderosa{
+colorChica :: String,
+cantPelo :: Number
+} deriving (Show,Eq)
+
+esLaRoja :: ChicaSuperPoderosa -> Bool
+esLaRoja unaChicaSuper = ((== "rojo") . colorChica) unaChicaSuper
+
+chicaLider :: [ChicaSuperPoderosa] -> ChicaSuperPoderosa
+chicaLider listaChicasSuper = findOrElse esLaRoja (head listaChicasSuper) listaChicasSuper
+

@@ -1,0 +1,57 @@
+data Auto = Auto {
+color :: String,
+velocidad :: Number,
+distancia :: Number
+} deriving (Show,Eq)
+
+type Carrera = [Auto]
+--1
+autosSonDistintos auto1 auto2 = auto1 /= auto2
+
+distanciaAutos auto1 auto2 = abs (distancia auto1 - distancia auto2)
+autosEstanCerca auto1 auto2 = autosSonDistintos auto1 auto2 && ((<10).distanciaAutos auto1) auto2 
+
+muestraDistancia auto = distancia auto
+
+-- (all(< (distancia auto)).map (muestraDistancia)) carrera, esto habia hecho yo, faltaba excluir de la lista al mismo auto
+vaAdelante auto1 auto2 = distancia auto1 > distancia auto2
+vaPrimero auto  = all (vaAdelante auto).filter (/= auto) 
+autoVaTranquilo auto carrera = (not.any (autosEstanCerca auto)) carrera && vaPrimero auto carrera 
+
+vaDetras auto1 auto2 = distancia auto1 < distancia auto2
+puestoAuto auto carrera = (+1).length.filter(vaDetras auto).filter (/= auto)
+
+--2 
+autoCorre unAuto tiempo = unAuto {distancia = distancia unAuto + (velocidad unAuto * tiempo)}
+
+type Modificador = Int -> Int 
+alterarVelocidad modificador unAuto = unAuto {velocidad = modificador (velocidad unAuto)}
+
+bajarVelocidad cantidad = alterarVelocidad (max 0.subtract cantidad)
+
+afectarALosQueCumplen :: (a -> Bool) -> (a -> a) -> [a] -> [a]
+afectarALosQueCumplen criterio efecto lista
+  = (map efecto . filter criterio) lista ++ filter (not.criterio) lista
+
+type PowerUp = Auto -> Carrera -> Carrera 
+terremoto :: PowerUp
+terremoto auto carrera = afectarALosQueCumplen (autosEstanCerca auto) (bajarVelocidad 50) carrera
+
+miguelitos :: Int -> PowerUp
+miguelitos cantidad auto carrera = afectarALosQueCumplen (vaAdelante auto) (bajarVelocidad cantidad) carrera
+
+
+duplicarVelocidad auto = auto{velocidad = velocidad auto *2}
+retornarVelocidad velocidad auto = auto{velocidad = velocidad}
+jetpack :: Int -> PowerUp
+jetpack tiempo auto carrera = afectarALosQueCumplen ((==) auto) ((retornarVelocidad (velocidad auto).autoCorre tiempo.duplicarVelocidad) auto) carrera
+
+simularCarrera :: Carrera -> [Carrera -> Carrera] -> [(Int, Color)]
+
+correnTodos carrera tiempo = map (autoCorre tiempo) carrera 
+
+colorCoinicide color1 auto = color1 == (color auto)
+buscarAuto color = head.filter ((== color).color)
+usaPowerUp powerup carrera color = (flip powerup carrera.buscarAuto color) carrera
+-- aplicar la lista de eventos sobre la carrera 
+simularCarrera carrera eventos = tablaPosiciones

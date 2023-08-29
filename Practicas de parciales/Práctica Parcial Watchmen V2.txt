@@ -1,0 +1,102 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+algunosVigilantes = [ ("El Comediante", ["Fuerza"], 1942), ("Buho Nocturno", ["Lucha", "Ingenierismo"], 1963), ("Rorschach", ["Perseverancia", "Deduccion", "Sigilo"], 1964), ("Espectro de Seda", ["Lucha", "Sigilo", "Fuerza"], 1962), ("Ozimandias", ["Inteligencia", "Más Inteligencia Aún"], 1968), ("Buho Nocturno", ["Lucha", "Inteligencia", "Fuerza"], 1939), ("Espectro de Seda", ["Lucha", "Sigilo"], 1940)]
+
+type Vigilante = (String,[String],Number)
+
+nombre :: Vigilante -> String
+nombre (n,_,_) = n
+
+habilidades :: Vigilante -> [String]
+habilidades (_,h,_) = h
+
+anio :: Vigilante -> Number
+anio (_,_,a) = a
+
+excluirVigilante :: String -> Vigilante -> Bool
+excluirVigilante unVigilante otroVigilante = unVigilante == (nombre otroVigilante)
+
+muerte :: String -> [Vigilante] -> [Vigilante]
+muerte unVigilante listaVigilantes = filter (excluirVigilante unVigilante) listaVigilantes
+
+retiro = muerte
+
+rorschach :: Vigilante
+rorschach = ("Rorschach", ["Perseverancia", "Deduccion", "Sigilo"], 1964)
+
+drmanhattan :: Vigilante
+drmanhattan = ("Dr Manhattan",["manipulacion de la materia a nivel atomica"],1900) 
+
+destruccionNiuShork :: [Vigilante] -> [Vigilante]
+destruccionNiuShork listaVigilantes = (muerte "Rorschach" .retiro  "Dr Manhattan") listaVigilantes
+
+agentesDelGobierno = [("Jack Bauer","24"), ("El Comediante", "Watchmen"), ("Dr. Manhattan", "Watchmen"), ("Liam Neeson", "Taken")]
+
+perteneceAlGobierno :: Vigilante -> Bool
+perteneceAlGobierno unVigilante = elem (nombre unVigilante) (map fst agentesDelGobierno)
+
+cinismo :: Vigilante -> Vigilante
+cinismo unVigilante | perteneceAlGobierno unVigilante = ((nombre unVigilante), ((habilidades unVigilante) ++ ["cinismo"]), (anio unVigilante))
+                    | otherwise = unVigilante
+
+
+guerraDeVietman :: [Vigilante] -> [Vigilante]
+guerraDeVietman listaVigilantes = map (cinismo) listaVigilantes
+
+accidenteLaboratorio :: Number -> [Vigilante] -> [Vigilante]
+accidenteLaboratorio unAnio listaVigilantes = listaVigilantes ++ [("Dr Manhattan",["manipulacion de la materia a nivel atomica"],unAnio)]
+
+esSucesor :: Vigilante -> Vigilante -> Bool
+esSucesor unVigilante otroVigilante = (nombre unVigilante) == (nombre otroVigilante) && (anio unVigilante) < (anio otroVigilante)
+
+tieneSucesor :: [Vigilante] -> Vigilante -> Bool
+tieneSucesor listaVigilantes unVigilante = any (esSucesor unVigilante) listaVigilantes
+
+noTienenSucesor :: [Vigilante] -> Vigilante -> Bool
+noTienenSucesor listaVigilantes unVigilante = (not.tieneSucesor listaVigilantes) unVigilante
+
+actaDeKeene :: [Vigilante] -> [Vigilante]
+actaDeKeene listaVigilantes = filter (noTienenSucesor listaVigilantes) listaVigilantes
+
+listaEventos = [actaDeKeene,accidenteLaboratorio 1959,guerraDeVietman,destruccionNiuShork]
+
+historia = foldl (flip ($)) algunosVigilantes listaEventos
+
+maximoSegun _ [a] = a
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                       | otherwise = maximoSegun f (y:ys)
+
+nombreDelSalvador :: [Vigilante] -> String
+nombreDelSalvador listaVigilantes = (nombre . maximoSegun (length. habilidades) . destruccionNiuShork) listaVigilantes
+
+elElegido :: [Vigilante] -> String
+elElegido listaVigilantes = (head . habilidades . maximoSegun (length . nombre). guerraDeVietman) listaVigilantes
+
+edad unVigilante = 2022 - (anio unVigilante)
+
+patriarca :: [Vigilante] -> Number
+patriarca listaVigilantes = (edad . maximoSegun edad . actaDeKeene) listaVigilantes
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

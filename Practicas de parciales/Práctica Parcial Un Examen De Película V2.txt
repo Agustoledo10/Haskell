@@ -1,0 +1,107 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+-- con Tuplas
+
+type Pelicula = (String,[String],Number,Number)
+
+nombrePelicula :: Pelicula -> String
+nombrePelicula (nombre,_,_,_) = nombre
+
+elenco :: Pelicula -> [String]
+elenco (_,e,_,_) = e
+
+duracion :: Pelicula -> Number
+duracion (_,_,d,_) = d
+
+anioEstreno :: Pelicula -> Number
+anioEstreno (_,_,_,a) = a
+
+taxi =("Taxi driver", ["De Niro", "Foster"], 113, 1976)
+machete = ("Machete", ["De Niro", "Rodriguez"], 105, 2010) 
+hp = ("Harry Potter 9", ["Watson", "Radcliffe", "Grint"], 252, 2015)
+
+todosLosActores :: [(String,[String])]
+todosLosActores = [("comedia", ["Carrey", "Grint", "Stiller"]),("accion", ["Stallone", "Willis","Schwarzenegger"]), ("drama", ["De Niro", "Foster"])]
+
+obtenerGenero :: (String,[String]) -> String
+obtenerGenero (g,_) = g
+
+trabajo :: String -> Pelicula -> Bool
+trabajo unActor unaPelicula = elem unActor (elenco unaPelicula)
+
+actoresDelGenero :: String -> [String]
+actoresDelGenero unGenero = snd . head . filter ((==unGenero).fst) $ todosLosActores
+
+perteneceGenero :: String -> String -> Bool
+perteneceGenero unGenero unActor = elem unActor (actoresDelGenero unGenero)
+
+mayoriaActores :: String -> [String] -> Bool
+mayoriaActores unGenero listaActores = (length . filter (perteneceGenero unGenero)) listaActores > div (length listaActores) 2
+
+esDeGenero :: String -> Pelicula -> Bool
+esDeGenero unGenero unaPelicula = mayoriaActores unGenero (elenco unaPelicula)
+
+type Premio = Pelicula -> Bool
+
+tresSonMultitud :: Premio
+tresSonMultitud unaPelicula = ((==3).length.elenco) unaPelicula
+
+clasicoSetentisa :: Premio
+clasicoSetentisa unaPelicula = ((>=1970).anioEstreno) unaPelicula && ((<=1979).anioEstreno) unaPelicula
+
+plomo :: Premio
+plomo unaPelicula = ((>180).duracion) unaPelicula
+
+n = [1..]
+
+nombreTerminaNumero :: String -> Bool
+nombreTerminaNumero unNombre = elem (last unNombre) ['0'..'9']
+
+zaga :: Premio
+zaga unaPelicula = nombreTerminaNumero (nombrePelicula unaPelicula)
+
+type Cine = (String,[(Pelicula,Number)])
+
+cp = ("Cineplex", [(hp, 5000), (machete, 4000), (hp, 1000)])
+hoyts = ("Hoyts Abasto", [(taxi, 2000)])
+
+
+nombreCine :: Cine -> String
+nombreCine unCine = fst unCine
+
+funcion :: Cine -> [(Pelicula,Number)]
+funcion unCine = snd unCine
+
+funcionesPelicula :: String -> Cine -> [(Pelicula,Number)]
+funcionesPelicula nombrePeli unCine = (filter ((==nombrePeli).nombrePelicula.fst). snd) unCine
+
+cuantosVieron :: String -> Cine -> Number
+cuantosVieron nombrePeli unCine = (sum . map snd . funcionesPelicula nombrePeli) unCine
+
+cuantosVieronPremiadas :: Premio -> Cine -> Number
+cuantosVieronPremiadas unPremio unCine = (sum . map snd . filter (unPremio.fst)) (snd unCine)
+
+actua :: String -> Pelicula -> Bool
+actua unActor unaPelicula = elem unActor (elenco unaPelicula)
+
+cuantosVieronStarring :: String -> Cine -> Number
+cuantosVieronStarring unActor unCine = (sum . map snd . filter (actua unActor.fst)) (snd unCine)
+
+cannes = [plomo,clasicoSetentisa]
+
+berlin = [tresSonMultitud,zaga,clasicoSetentisa]
+
+cuantosPuedeGanar :: Pelicula -> [Premio] -> Number
+cuantosPuedeGanar unaPelicula listaPremios = (length . filter (flip ($) unaPelicula)) listaPremios
+
+clasicoCuarentas :: Premio
+clasicoCuarentas unaPelicula = ((>=1940).anioEstreno) unaPelicula && ((<=1949).anioEstreno) unaPelicula
+
+clasicoSesentas :: Premio
+clasicoSesentas unaPelicula = ((>=1960).anioEstreno) unaPelicula && ((<=1969).anioEstreno) unaPelicula
+
+mdp = [plomo,zaga,clasicoCuarentas,clasicoSesentas]
+
+avellaneda = [actua "Darin",actua "Suar"]

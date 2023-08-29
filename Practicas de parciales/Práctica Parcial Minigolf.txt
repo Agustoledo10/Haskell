@@ -1,0 +1,102 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+-- Modelo inicial
+data Jugador = UnJugador {
+  nombre :: String,
+  padre :: String,
+  habilidad :: Habilidad
+} deriving (Eq, Show)
+
+data Habilidad = Habilidad {
+  fuerzaJugador :: Number,
+  precisionJugador :: Number
+} deriving (Eq, Show)
+
+-- Jugadores de ejemplo
+bart = UnJugador "Bart" "Homero" (Habilidad 25 60)
+todd = UnJugador "Todd" "Ned" (Habilidad 15 80)
+rafa = UnJugador "Rafa" "Gorgory" (Habilidad 10 1)
+
+data Tiro = Tiro {
+  velocidad :: Number,
+  precision :: Number,
+  altura :: Number
+} deriving (Eq, Show)
+
+type Puntos = Int
+
+-- Funciones útiles
+between n m x = elem x [n .. m]
+
+
+
+type Palo = Habilidad -> Tiro
+
+putter unaHabilidad = Tiro 10 (((*2).(precisionJugador)) unaHabilidad) 0
+
+madera unaHabilidad = Tiro 100 (div (precisionJugador unaHabilidad) 2) 5
+
+hierro numero unaHabilidad = Tiro ((fuerzaJugador unaHabilidad) * numero) (div (precisionJugador unaHabilidad) numero) (max 0 (numero-3))
+
+palos = [putter,madera] ++ map hierro [1,2,3,4,5,6,7,8,9,10]
+
+golpe :: Jugador -> Palo -> Tiro 
+golpe unJugador unPalo = unPalo (habilidad unJugador)
+
+tiroDetenido = Tiro 0 0 0 
+
+obstaculoSuperableSi superaObstaculo efectoObstaculo unTiro | superaObstaculo unTiro = efectoObstaculo unTiro
+                                                     | otherwise = tiroDetenido  
+
+condicionTunelConRampa unTiro = ((precision unTiro) > 90) && (altura unTiro) == 0 
+efectoTunelRampa unTiro =  unTiro{velocidad = (*2).velocidad $ unTiro, precision = 100,altura = 0}
+
+superaTunelRampa unTiro = obstaculoSuperableSi condicionTunelConRampa efectoTunelRampa unTiro
+
+
+
+condicionLaguna unTiro = (velocidad unTiro) > 80 && ((altura unTiro) >= 1 || 5 <= (altura unTiro))  
+efectoLaguna largoLaguna unTiro = unTiro{altura = div (altura unTiro) largoLaguna} 
+
+superaLaguna largoLaguna unTiro = obstaculoSuperableSi condicionLaguna (efectoLaguna largoLaguna) unTiro
+
+condicionHoyo unTiro =  (altura unTiro) == 0 && ((velocidad unTiro) >= 5 || 20 <= (velocidad unTiro))
+efectoHoyo unTiro = tiroDetenido
+           
+superaHoyo unTiro = obstaculoSuperableSi condicionHoyo efectoHoyo unTiro 
+
+
+-- aplicar al jugador cada palo para ver que tiro produce y probar si ese tiro le sirve para superar el obstaculo
+--palosUtiles unJugador unObstaculo 
+
+data Obstaculo = Obstaculo{
+condicion :: Tiro -> Bool,
+efecto :: Tiro -> Tiro
+} deriving (Show,Eq)
+
+leSirveParaSuperar unJugador unObstaculo unPalo = ((condicion unObstaculo).unPalo.habilidad) unJugador
+
+palosUtiles :: Jugador -> Obstaculo -> [Palo] -> [Palo]
+palosUtiles unJugador unObstaculo palos = filter(leSirveParaSuperar unJugador unObstaculo) palos 
+
+
+obstaculosASuperar unaListaObstaculos unTiro = (length.filter (flip ($) unTiro).map condicion) unaListaObstaculos
+
+maximoSegun f = foldl1 (mayorSegun f)
+mayorSegun f a b
+  | f a > f b = a
+  | otherwise = b
+
+aplico v f = f v 
+paloMasUtil unJugador unaListaObstaculos palos = maximoSegun (obstaculosASuperar unaListaObstaculos.golpe unJugador) palos
+
+puntosParticipantes (_,puntos) = puntos
+
+niñoGanador resultados = maximoSegun (puntosParticipantes) resultados
+
+obtenerPadres (jugador,_) = padre jugador
+
+padresPerdedores resultados = map (obtenerPadres).filter (/= (niñoGanador resultados)) 
+

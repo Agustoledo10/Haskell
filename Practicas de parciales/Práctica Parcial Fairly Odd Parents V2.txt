@@ -1,0 +1,90 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Chico = Chico {
+nombreChico :: String,
+edad :: Number,
+habilidades :: [String],
+deseos :: [Deseo]
+} deriving (Show,Eq)
+
+type Deseo = Chico -> Chico
+
+timmy = Chico "Timmy" 10 ["mirar television", "jugar en la pc"] [serMayor]
+
+serMayor :: Deseo
+serMayor unChico = unChico {edad = 18}
+
+aprenderHabilidades :: [String] -> Deseo
+aprenderHabilidades listaHabilidades unChico = unChico { habilidades = (habilidades unChico) ++ listaHabilidades}
+
+n = map (show) [1..]
+
+need = zipWith (++) (cycle ["jugar need for speed "]) n
+
+serGrosoEnNeedForSpeed :: Deseo
+serGrosoEnNeedForSpeed unChico = unChico { habilidades = (habilidades unChico) ++ need}
+
+cumplePrimerDeseo :: Deseo
+cumplePrimerDeseo unChico = ((head . deseos) unChico) unChico
+
+wanda :: Deseo
+wanda unChico = (serMayor . cumplePrimerDeseo) unChico
+
+desmadurar :: Deseo
+desmadurar unChico = unChico {edad = div (edad unChico) 2}
+
+cosmo :: Deseo
+cosmo unChico = desmadurar unChico
+
+muffinMagico :: Deseo
+muffinMagico unChico = foldl (flip ($)) unChico (deseos unChico)
+
+type Condicion = Chico -> Bool
+
+tieneHabilidad :: String -> Condicion
+tieneHabilidad unaHabilidad unChico = elem unaHabilidad (habilidades unChico)
+
+esMayor :: Condicion
+esMayor unChico = ((>=18).edad) unChico
+
+esSuperMaduro :: Condicion
+esSuperMaduro unChico = esMayor unChico && tieneHabilidad "manejar" unChico
+
+data Chica = Chica {
+nombreChica :: String,
+condicion :: Condicion
+} deriving (Show,Eq)
+
+noEsTimmy :: Condicion
+noEsTimmy unChico = (nombreChico unChico) /= (nombreChico timmy)
+
+trixie = Chica "Trixie Tang" noEsTimmy
+
+vicky = Chica "Vicky" (tieneHabilidad "ser un supermodelo noruego")
+
+findOrElse _ v [] = v
+findOrElse f v (x:xs) | f x = x
+                      | otherwise = findOrElse f v xs
+
+quienConquistaA :: Chica -> [Chico] -> Chico
+quienConquistaA unaChica listaChicos = findOrElse (condicion unaChica) (last listaChicos) listaChicos
+
+sabeCocinar = tieneHabilidad "cocinar"
+
+chicaEj = Chica "Agus" sabeCocinar  
+
+habilidadProhibida :: String -> Bool
+habilidadProhibida unaHabilidad = elem unaHabilidad ["enamorar","matar","dominar el mundo"]
+
+tieneHabilidadesProhibidas :: Chico -> Bool
+tieneHabilidadesProhibidas unChico = any (habilidadProhibida) ((take 5 . habilidades) unChico)
+
+deseoProhibido :: Chico -> Deseo -> Bool
+deseoProhibido unChico unDeseo = tieneHabilidadesProhibidas (unDeseo unChico)
+
+
+
+serGrosoEnNeedForSpeed :: Deseo
+serGrosoEnNeedForSpeed unChico = unChico { habilidades = (habilidades unChico) ++ need}

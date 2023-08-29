@@ -1,0 +1,70 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Fecha = Fecha {
+dia :: Number,
+mes :: Number,
+anio :: Number 
+} deriving (Show,Eq)
+
+data Cliente = Cliente{
+nombrePasajero :: String,
+domicilio :: String
+}deriving (Show,Eq)
+
+data Viaje = Viaje {
+fecha :: Fecha,
+costo :: Number,
+cliente :: Cliente   
+} deriving (Show,Eq)
+
+type Condicion = Viaje -> Bool
+
+cualqViaje viaje = True
+
+viajeMayor200 viaje = (>200).(costo) $ viaje
+
+viajeClienteNLetras n viaje = (>n).length $ (nombrePasajero.cliente $ viaje)
+
+viajeNoZona zona viaje = zona /= (domicilio.cliente $ viaje)
+
+data Remis = Remis{
+nombreChofer :: String,
+kilometraje :: Number,
+viajes :: [Viaje],
+condicion :: Condicion    
+} deriving (Show,Eq)
+
+lucas = Cliente "Lucas" "Victoria"
+
+daniel = Remis "Daniel" 23500 [Viaje (Fecha 20 4 2017) 150 lucas] (viajeNoZona "Olivos")
+
+alejandra = Remis "Alejandra" 180000 [] (cualqViaje)
+
+puedeTomarViaje :: Condicion -> Condicion
+puedeTomarViaje unaCondicion viaje = unaCondicion viaje
+
+remisTomaViaje :: Viaje -> Remis -> Bool
+remisTomaViaje unViaje unRemis = (condicion unRemis) unViaje 
+
+liquidacionChofer remis = sum.map costo.viajes $ remis
+
+filtrarChoferes :: Viaje -> [Remis] -> [Remis]
+filtrarChoferes viaje = filter (remisTomaViaje viaje)
+
+
+menorCantViajes remises = (minimum.map (length.viajes)) remises 
+
+tieneMenorCant menor remis = menor == (length.viajes) remis
+
+obtenerChoferMenosViaje remises = (head.filter (tieneMenorCant (menorCantViajes remises))) remises
+
+incorporarViaje :: Viaje -> Remis -> Remis
+incorporarViaje viaje unRemis = unRemis{viajes = (viajes unRemis) ++ [viaje]} 
+
+realizarViaje:: Viaje -> [Remis] -> Remis
+realizarViaje viaje remises = (incorporarViaje viaje.obtenerChoferMenosViaje.filtrarChoferes viaje) remises
+
+
+-- utl puntos no vistos todavia 

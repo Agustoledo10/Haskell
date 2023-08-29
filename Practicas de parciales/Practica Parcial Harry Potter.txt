@@ -1,0 +1,95 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Hechizo = Mago -> Mago
+
+data Mago = Mago{
+nombre :: String,
+edad :: Number,
+salud :: Number,
+hechizos :: [Hechizo]
+} deriving (Show,Eq)
+
+curar :: Number -> Hechizo
+curar unaCantidad unMago = unMago {salud = (salud unMago) + unaCantidad}
+
+lanzarRayo :: Hechizo
+lanzarRayo unMago | ((>10).salud) unMago = unMago {salud = (salud unMago) - 10}
+                  | otherwise = unMago {salud = (div (salud unMago) 2)}
+
+amnesia :: Number -> Hechizo
+amnesia unNumero unMago = unMago {hechizos = (drop unNumero (hechizos unMago))}
+
+confundir :: Hechizo
+confundir unMago = ((head . hechizos) unMago) unMago
+
+poder :: Mago -> Number
+poder unMago = (salud unMago) + ((edad unMago)*((length.hechizos) unMago))
+
+danio :: Mago -> Hechizo -> Number
+danio unMago unHechizo = (salud unMago) - (salud . unHechizo) unMago
+
+diferenciaDePoder :: Mago -> Mago -> Number
+diferenciaDePoder unMago otroMago = (abs . (-) (poder unMago)) (poder otroMago)
+
+data Academia = Academia{
+magos :: [Mago],
+examenDeIngreso :: Mago -> Bool
+} deriving (Show,Eq)
+
+esRincewind :: Mago -> Bool
+esRincewind unMago = ((== "Rincewind").nombre) unMago && ((==0).length.hechizos) unMago
+
+perteneceRincewind :: Academia -> Bool
+perteneceRincewind unaAcademia = any (esRincewind) (magos unaAcademia)
+
+esViejo :: Mago -> Bool
+esViejo unMago = ((>50).edad) unMago
+
+esNerd :: Mago -> Bool
+esNerd unMago = (length.hechizos) unMago > salud unMago
+
+todosLosViejosSonNerds :: Academia -> Bool
+todosLosViejosSonNerds unaAcademia = (all (esNerd) . filter (esViejo)) (magos unaAcademia)
+
+noAprueba :: (Mago -> Bool) -> Mago -> Bool
+noAprueba unExamen unMago = (not.unExamen) unMago
+
+magosNoReingresarian :: Academia -> Number
+magosNoReingresarian unaAcademia = (length . filter (noAprueba (examenDeIngreso unaAcademia))) (magos unaAcademia)
+
+masDiezHechizos :: Mago -> Bool
+masDiezHechizos unMago = ((>10).length.hechizos) unMago
+
+magosConMultiplesHechizos :: Academia -> Number
+magosConMultiplesHechizos unaAcademia = (sum . map edad . filter (masDiezHechizos). magos) unaAcademia
+
+f _ _ [z] = z
+f funcion1 elemento (x:y:ys) | funcion1 elemento x > funcion1 elemento y = f funcion1 elemento (x:ys)
+                             | otherwise = f funcion1 elemento (y:ys)
+
+mejorHechizoContra :: Mago -> Mago -> Hechizo
+mejorHechizoContra primerMago segundoMago = f danio primerMago (hechizos segundoMago)
+
+mejorOponente :: Mago -> Academia -> Mago
+mejorOponente unMago unaAcademia = f diferenciaDePoder unMago (magos unaAcademia)
+
+saludVictimaAtacada :: Mago -> Mago -> Number
+saludVictimaAtacada unaVictima unAtacante = (salud . foldl (flip ($)) unaVictima . hechizos) unAtacante
+
+noPuedeGanarle :: Mago -> Mago -> Bool
+noPuedeGanarle unAtacante unaVictima = (salud unaVictima) == (saludVictimaAtacada unaVictima unAtacante)
+
+laTieneDeHija :: Academia -> Academia -> Bool
+laTieneDeHija primeraAc segundaAc = (all (noPuedeGanarle ((head.magos) segundaAc)) . magos) primeraAc
+
+
+
+
+
+
+
+
+
+

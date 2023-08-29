@@ -1,0 +1,126 @@
+ module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Personaje = Personaj{
+nombre  :: String,
+edad :: Number,
+energia :: Number,
+habilidades :: [String],
+planeta :: String 
+} deriving (Show,Eq)
+
+type Gema = Personaje -> Personaje 
+
+data Guantelete = Guantelete{
+material :: String,
+gemas :: [Gema]
+} deriving (Show,Eq)
+
+-- dada un guantelete con gemas infinitas, no se puede determinar aquella de mayor poder puesto que, a partir de la implementación recursiva del maximoSegun,
+-- el resultado depende del caso base que corta la recursión, es decir por cada comparación entre dos elementos, se mantiene el de mayor valor segun 
+-- la funcion considerada, hasta que quede una lista de un único valor que es el maximoSegun. Pero si la lista es infinita, nunca se llegará a dicho resultado,
+-- si no que se seguiran evaluando los infinitos elementos. 
+
+-- por otra parte, se pueden usar las primeras tres gemas de un contingente infinito, por la evaluación diferida de haskell, que toma unicamente lo que necesita,
+-- de la lista sin evaluarla en su totalidad, en este caso conseguidos los primeros tres elementos, el lenguaje se ve capacitado para devolver aquello que se requiere
+
+------1--------
+
+tieneLas6Gemas :: Guantelete -> Bool
+tieneLas6Gemas unGuantele = ((==6).length.gemas) unGuantele
+
+estaCompleto :: Guantelete -> Bool
+estaCompleto unGuantele = ((== "uru") . material) unGuantele && tieneLas6Gemas unGuantele
+
+type Universo = [Personaje]
+
+chasquidoUniverso :: Guantelete -> Universo -> Universo
+chasquidoUniverso unGuantele unUniverso | estaCompleto unGuantele = take (div (length unUniverso) 2) unUniverso
+                                        | otherwise = unUniverso
+
+------2---------
+type Condicion = Personaje -> Bool
+
+tieneMenos45 :: Condicion
+tieneMenos45 unPersonaje = ((<45).edad) unPersonaje
+
+universoAptoPdx :: Universo -> Bool
+universoAptoPdx unUniverso = any (tieneMenos45) unUniverso
+
+tieneVariasHabilidades :: Condicion
+tieneVariasHabilidades unPersonaje = ((>1).length.habilidades) unPersonaje
+
+energiaTotal :: Universo -> Number
+energiaTotal unUniverso = (sum . map energia . filter (tieneVariasHabilidades)) unUniverso
+
+----- 3 -----------
+
+usarGema :: Gema -> Gema
+usarGema unaGema unPersonaje = unaGema unPersonaje
+
+quitarEnergia :: Number -> Personaje -> Personaje
+quitarEnergia unaCantidad unPersonaje = unPersonaje {energia = max ((energia unPersonaje) - unaCantidad) 0}
+
+gemaMente :: Number -> Gema
+gemaMente unaCantidad  unPersonaje = quitarEnergia unaCantidad unPersonaje
+
+quitarHabilidad :: String -> Personaje -> Personaje
+quitarHabilidad unaHabilidad unPersonaje = unPersonaje { habilidades = filter (/= unaHabilidad) (habilidades unPersonaje)}
+
+gemaAlma :: String -> Gema
+gemaAlma unaHabilidad unPersonaje = (quitarEnergia 10 . quitarHabilidad unaHabilidad) unPersonaje
+
+transportarA :: String -> Personaje -> Personaje
+transportarA unPlaneta unPersonaje = unPersonaje {planeta = unPlaneta}
+
+gemaEspacio :: String -> Gema
+gemaEspacio unPlaneta unPersonaje = (quitarEnergia 20 . transportarA unPlaneta) unPersonaje
+
+tienePocasHabilidades :: Condicion
+tienePocasHabilidades unPersonaje = ((<=2).length.habilidades) unPersonaje
+
+quitaTodasLasHabilidades :: Personaje -> Personaje
+quitaTodasLasHabilidades unPersonaje = unPersonaje {habilidades = []}
+
+gemaPoder :: Gema
+gemaPoder unPersonaje | tienePocasHabilidades unPersonaje = (quitarEnergia (energia unPersonaje) . quitaTodasLasHabilidades) unPersonaje
+                      | otherwise = quitarEnergia (energia unPersonaje) unPersonaje
+
+reduceMitadEdad :: Personaje -> Personaje
+reduceMitadEdad unPersonaje = unPersonaje {edad = max 18 (div (edad unPersonaje) 2)}
+
+gemaTiempo :: Gema
+gemaTiempo unPersonaje = reduceMitadEdad unPersonaje
+
+gemaLoca :: Gema -> Gema
+gemaLoca unaGema unPersonaje = (unaGema . unaGema) unPersonaje
+
+---- 4 -----
+
+guanteleteDeGoma = Guantelete "goma" [gemaTiempo,gemaAlma "usar Mjolnir",gemaLoca (gemaAlma "programacion en Haskell")]
+
+----- 5 -----
+
+utilizar :: [Gema] -> Personaje -> Personaje
+utilizar listaGemas unEnemigo = foldl (flip ($)) unEnemigo listaGemas
+
+---- 6 ----
+
+perdidaCausada :: Personaje -> Gema -> Number
+perdidaCausada unPersonaje unaGema = (energia unPersonaje) - (energia . unaGema $ unPersonaje)
+
+maximoSegun _ [a] = a
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                       | otherwise = maximoSegun f (y:ys)
+
+gemaMasPoderosa :: Personaje -> Guantelete -> Gema
+gemaMasPoderosa unPersonaje unGuantele = maximoSegun (perdidaCausada unPersonaje) (gemas unGuantele)
+
+-- usoLasTresPrimerasGemas dado que a pesar de que la lista de gemas del tiempo son infinitas, Haskell funciona con evaluacion diferida,
+-- lo cual significa que difiere la resolucion de ciertas operaciones hasta que sea absolutamente necesario
+-- en este caso mediante la operacion take no considera la totalidad de la lista infinita sino que simplemente toma los primeros 3 elementos
+-- sin "resolver" la operacion de recorrer la lista entera y devolverlos
+-- gemaMasPoderosa sin embargo, no puede emplearse dado que para concluir debe considerar todas las gemas del conjunto, para encontrar aquella de mayor poder
+-- por el algoritmo recursivo empleado, por cada gema comparada se llamara nuevamente a la funcion que determina el maximo con la gema obtenida y
+-- la cola de una lista infinita. Nunca alcanzara una lista de un elemento que corta la recursion. 

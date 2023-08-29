@@ -1,0 +1,87 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type HabilidadesRobot = (Number,Number,Number)
+
+velocidadRobot :: HabilidadesRobot -> Number
+velocidadRobot (_,v,_) = v
+
+fuerzaRobot :: HabilidadesRobot -> Number
+fuerzaRobot (f,_,_) = f
+
+resistenciaRobot :: HabilidadesRobot -> Number
+resistenciaRobot (_,_,r) = r
+
+type HabilidadesVehiculo = (Number,Number)
+
+velocidadVehiculo :: HabilidadesVehiculo -> Number
+velocidadVehiculo habilidadesUnVehiculo = fst habilidadesUnVehiculo
+
+resistenciaVehiculo :: HabilidadesVehiculo -> Number
+resistenciaVehiculo habilidadesUnVehiculo = snd habilidadesUnVehiculo
+
+data Autobot = Robot {nombreRobot :: String , habilidadesRobot :: HabilidadesRobot , transformacion :: HabilidadesRobot -> HabilidadesVehiculo } | Vehiculo {nombreVehiculo :: String, habilidadesVehiculo :: HabilidadesVehiculo} deriving (Show,Eq)
+
+optimus = Robot "Optimus Prime" (20,20,10) optimusTransformacion
+optimusTransformacion (_,v,r) = (v * 5, r * 2)
+
+jazz = Robot "Jazz" (8,35,3) jazzTransformacion
+jazzTransformacion (_,v,r) = (v * 6, r * 3)
+
+wheeljack = Robot "Wheeljack" (11,30,4) wheeljackTransformacion
+wheeljackTransformacion (_,v,r) = (v * 4, r * 3)
+
+bumblebee = Robot "Bumblebee" (10,33,5) bumblebeeTransformacion
+bumblebeeTransformacion (_,v,r) = (v * 4, r * 2)
+
+autobots = [ optimus, jazz, wheeljack, bumblebee ]
+
+maximoSegun f a b = max (f a b) (f b a)
+
+habilidadesAutobot :: Autobot -> HabilidadesRobot
+habilidadesAutobot (Robot _ habilidades _) = habilidades
+habilidadesAutobot (Vehiculo _ habilidades) = (0, (fst habilidades),(snd habilidades))
+
+transformar :: Autobot -> Autobot
+transformar (Robot unNombre unasHabilidades unaTransformacion) = (Vehiculo unNombre (unaTransformacion unasHabilidades))
+
+diferenciasAutobots :: Autobot -> Autobot -> Number
+diferenciasAutobots unAutobot otroAutobot =  (fuerzaRobot . habilidadesAutobot) otroAutobot - (resistenciaRobot . habilidadesAutobot) unAutobot
+
+velocidadContra :: Autobot -> Autobot -> Number
+velocidadContra unAutobot otroAutobot = (velocidadRobot . habilidadesAutobot) unAutobot - max 0 (diferenciasAutobots unAutobot otroAutobot)
+
+elMasRapido :: Autobot -> Autobot -> Autobot
+elMasRapido unAutobot otroAutobot | (velocidadContra unAutobot otroAutobot) > (velocidadContra otroAutobot unAutobot) = unAutobot
+                                  | otherwise = otroAutobot
+
+todosLosEstados :: [(Autobot -> Autobot,Autobot -> Autobot)]
+todosLosEstados = [(id , id),(id ,transformar ),(transformar ,id ),(transformar ,transformar )]
+
+ganaPrimero :: Autobot -> Autobot -> Bool
+ganaPrimero unAutobot otroAutobot = (velocidadContra unAutobot otroAutobot) > (velocidadContra otroAutobot unAutobot)
+
+ganadorPrimero  :: (Autobot,Autobot) -> Bool
+ganadorPrimero (autobot1,autobot2) = uncurry ganaPrimero (autobot1,autobot2)
+
+domina :: Autobot -> Autobot -> Bool
+domina autobot1 autobot2 = (all (ganadorPrimero)  . map (\ (f,g) -> (f autobot1, g autobot2) )) todosLosEstados
+
+losDominaATodos :: Autobot -> [Autobot] -> Bool
+losDominaATodos unAutobot listaAutobots = all (domina unAutobot) listaAutobots
+
+nombreAutobot (Robot nombre _ _) = nombre
+nombreAutobot (Vehiculo nombre _) = nombre
+
+quienesCumplen :: (Autobot -> Bool) -> [Autobot] -> [String]
+quienesCumplen unaCondicion listaAutobots = (map nombreAutobot . filter (unaCondicion)) listaAutobots
+
+esVocal :: Char -> Bool
+esVocal unaLetra = elem unaLetra "aeiou"
+
+
+
+
+
+

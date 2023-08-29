@@ -1,0 +1,88 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Persona = Persona{
+nombrePersona :: String,
+edad :: Number,
+peso :: Number,
+coefTonif :: Number
+} deriving (Show,Eq)
+
+-- 1
+
+esObeso :: Persona -> Bool
+esObeso unaPersona = ((<100).peso) unaPersona
+
+saludable :: Persona -> Bool
+saludable unaPersona = esObeso unaPersona && ((>5).coefTonif) unaPersona
+
+-- 2
+
+quemarCalorias :: Persona -> Number  -> Persona
+quemarCalorias unaPersona caloriasQuemadas | esObeso unaPersona = unaPersona { peso = (peso unaPersona) - (div caloriasQuemadas 150)}
+                                           | (not.esObeso) unaPersona && ((>30).edad) unaPersona && (>200) caloriasQuemadas = unaPersona { peso = (peso unaPersona) - 1}
+                                           | otherwise = unaPersona { peso = (peso unaPersona) - (div caloriasQuemadas ((peso unaPersona) * (edad unaPersona)))}
+
+
+-- 3
+
+type Ejercicio = Persona -> Persona
+
+caminata :: Number -> Ejercicio
+caminata duracion unaPersona = quemarCalorias unaPersona (1*5*duracion)
+
+entrenamientoEnCinta :: Number -> Ejercicio
+entrenamientoEnCinta duracion unaPersona = quemarCalorias unaPersona ((6 + (6 + (div duracion 5)))/2)
+
+cuantoPesas :: Number -> Number -> Number
+cuantoPesas peso duracion | duracion > 10 = div peso 10
+                          | otherwise = 0
+
+pesas :: Number -> Number -> Ejercicio
+pesas peso duracion unaPersona = quemarCalorias unaPersona (cuantoPesas peso duracion)
+
+colina :: Number -> Number -> Ejercicio
+colina inclinacion duracion unaPersona = quemarCalorias unaPersona (2 * duracion * inclinacion)
+
+montaña :: Number -> Number -> Ejercicio
+montaña inclinacion duracion unaPersona = (colina inclinacion duracion.colina inclinacion duracion) unaPersona
+
+ejercitaAlumno :: [Ejercicio] -> Persona -> Persona
+ejercitaAlumno listaEjercicios unAlumno = foldl (flip ($)) unAlumno listaEjercicios
+
+profe :: [Ejercicio] -> [Persona] -> [Persona]
+profe listaEjercicios listaSocios = (map (ejercitaAlumno listaEjercicios) . filter (not.saludable)) listaSocios
+
+data Rutina = Rutina{
+nombreRutina :: String,
+duracion :: Number,
+ejercicios :: [(Number -> Ejercicio)]
+} deriving (Show,Eq)
+
+agregarDuracion unaRutina unEjercicio = unEjercicio (div (duracion unaRutina) (length (ejercicios unaRutina) ))
+
+haceRutina :: Rutina -> Persona -> Persona
+haceRutina unaRutina unaPersona = foldl (flip ($)) unaPersona (map (agregarDuracion unaRutina) (ejercicios unaRutina))
+
+pesoPerdido :: Persona -> Rutina -> Number
+pesoPerdido unaPersona unaRutina = (peso unaPersona) - (peso (haceRutina unaRutina unaPersona))
+
+tonifGanada :: Persona -> Rutina -> Number
+tonifGanada unaPersona unaRutina = (coefTonif (haceRutina unaRutina unaPersona)) - (coefTonif unaPersona)
+
+data Resumen = Resumen{
+nombreRut :: String,
+kgPerdidos :: Number,
+tonifGanined :: Number
+} deriving (Show,Eq)
+
+resumenRutina ::Persona -> Rutina -> Resumen 
+resumenRutina unaPersona unaRutina = Resumen (nombreRutina unaRutina) (pesoPerdido unaPersona unaRutina) (tonifGanada unaPersona unaRutina)
+
+haceSaludable :: Persona -> Rutina -> Bool
+haceSaludable unaPersona unaRutina = saludable (haceRutina unaRutina unaPersona)
+
+muchasRutinas :: [Rutina] -> Persona -> [Resumen]
+muchasRutinas listaRutinas unaPersona =  (map (resumenRutina unaPersona) . filter (haceSaludable unaPersona)) listaRutinas
+

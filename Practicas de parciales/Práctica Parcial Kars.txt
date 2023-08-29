@@ -1,0 +1,92 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Auto = Auto {
+nombreAuto :: String,
+nivelNafta :: Number,
+velAuto :: Number,
+nombreEnamorado :: String,
+trucoAuto :: Truco
+} deriving (Show,Eq)
+
+data Carrera = Carrera{
+vueltas :: Number,
+longPista :: Number,
+participantes :: [Auto],
+espectadores :: [String]
+} deriving (Show,Eq)
+
+type Truco = Auto -> Auto
+
+modificarNafta :: (Number -> Number) -> Auto -> Auto
+modificarNafta unaModificacion unAuto = unAuto { nivelNafta = (unaModificacion . nivelNafta) unAuto}
+
+modificarVelocidad :: (Number -> Number) -> Auto -> Auto
+modificarVelocidad unaModificacion unAuto = unAuto { velAuto = (unaModificacion . velAuto) unAuto}
+
+deReversaRocha :: Carrera -> Truco 
+deReversaRocha unaCarrera unAuto = modificarNafta (*(longPista unaCarrera)) unAuto
+
+impresionar :: Carrera -> Truco
+impresionar unaCarrera unAuto = modificarVelocidad (*2) unAuto
+
+nitro :: Truco
+nitro unAuto = modificarVelocidad (+15) unAuto
+
+comboLoco :: Carrera -> Truco
+comboLoco unaCarrera unAuto = (deReversaRocha unaCarrera . nitro) unAuto
+
+rochaMcQueen :: Carrera -> Auto
+rochaMcQueen unaCarrera = Auto "RochaMcQueen" 282 0  "Ronco" (deReversaRocha unaCarrera)
+
+biankerr :: Carrera -> Auto
+biankerr unaCarrera = Auto "Binakerr" 378 0 "Tincho" (impresionar unaCarrera)
+
+gushtav :: Auto
+gushtav = Auto "Gushtav" 230 0 "Peti" nitro
+
+rodra :: Carrera -> Auto
+rodra unaCarrera = Auto "Rodra" 153 0 "Tais" (comboLoco unaCarrera)
+
+maximoSegun _ [a] = a
+maximoSegun f (x:y:ys) | f x > f y = maximoSegun f (x:ys)
+                       | otherwise = maximoSegun f (y:ys)
+
+ultimoCarrera :: [Auto] -> Auto
+ultimoCarrera listaParticipantes = maximoSegun (negate . velAuto) listaParticipantes
+
+usaTruco :: [Auto] -> Auto -> Auto
+usaTruco listaParticipantes unAuto | (nombreAuto unAuto) == (nombreAuto . ultimoCarrera) listaParticipantes = (trucoAuto unAuto) unAuto
+                                   | otherwise = unAuto
+
+incrementarVelocidad :: Auto -> Auto
+incrementarVelocidad unAuto | elem ((length . nombreAuto) unAuto) [1..5] = modificarVelocidad (+15) unAuto
+                            | elem ((length . nombreAuto) unAuto) [6..8] = modificarVelocidad (+20) unAuto
+                            | elem ((length . nombreAuto) unAuto) [8..]  = modificarVelocidad (+30) unAuto
+
+restarCombustible :: Carrera -> Auto -> Auto
+restarCombustible unaCarrera unAuto = modificarNafta (flip (-) ((longPista unaCarrera)*((length . nombreAuto) unAuto))) unAuto
+
+darVuelta :: Carrera -> Carrera
+darVuelta unaCarrera = unaCarrera {participantes = foldl (\listaParticipantes unEvento -> map unEvento listaParticipantes) (participantes unaCarrera) [usaTruco (participantes unaCarrera), incrementarVelocidad, restarCombustible unaCarrera]}
+
+correrCarrera :: Carrera -> Carrera
+correrCarrera unaCarrera = (!!) (iterate darVuelta unaCarrera) (vueltas unaCarrera)
+
+-- siguiendo el criterio de que el ultimo es el de menor velocidad, el de max cuando termine tendria q ser el primero 
+ganadorCarrera :: Carrera -> Auto
+ganadorCarrera unaCarrera = ((maximoSegun velAuto) . participantes . correrCarrera) unaCarrera
+
+puedeCorrerDeNuevo :: Carrera -> Auto -> Bool
+puedeCorrerDeNuevo unaCarrera unAuto = (nombreAuto unAuto) == (nombreAuto . ganadorCarrera . correrCarrera) unaCarrera || ((>27).nivelNafta) unAuto
+
+recompetidores :: Carrera -> [Auto]
+recompetidores unaCarrera = (filter (puedeCorrerDeNuevo unaCarrera) . participantes . correrCarrera) unaCarrera
+
+-- si hay infinitos participantes, no se puede hacer ninguna de las tres cosas, pues dependen de la funcion dar vuelta, la cual si afronta una lista infinita de participantes, nunca podra dar una respuesta pues estara constantemente aplicando las funciones
+-- de los eventos de la carrera
+
+
+
+

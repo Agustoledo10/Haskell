@@ -1,0 +1,127 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Preferencia = Persona -> Destino -> Bool
+
+data Persona = Persona{
+nombre :: String,
+edad :: Number,
+stress :: Number,
+preferencias :: [Preferencia],
+amigos :: [Persona]
+} deriving (Show,Eq)
+
+cantAmigos :: Persona -> Number
+cantAmigos unaPersona = (length.amigos) unaPersona
+
+puntosDeScoring :: Persona -> Number
+puntosDeScoring unaPersona | (even . cantAmigos) unaPersona = (stress unaPersona) * (edad unaPersona)
+                           | ((>40).edad) unaPersona = (cantAmigos unaPersona) * (edad unaPersona)
+                           | otherwise = ((*2).length.nombre) unaPersona
+
+comienzaCon :: Char -> String -> Bool
+comienzaCon unaLetra unNombre = ((== unaLetra).head) unNombre
+
+nombreFirme :: Persona -> Bool
+nombreFirme unaPersona = comienzaCon 'P' (nombre unaPersona)
+
+personaInteresante :: Persona -> Bool
+personaInteresante unaPersona = ((>=2).cantAmigos) unaPersona
+
+mesesEstresantes :: [String]
+mesesEstresantes = ["Enero","enero","Febrero","febrero"]
+
+type Destino = Persona -> Persona 
+
+stressAReducir :: Persona -> Number
+stressAReducir unaPersona = max (edad unaPersona) 20
+
+resta :: Number -> Number -> Number
+resta unNumero otroNumero = max 0 (unNumero - otroNumero)
+
+marDelPlata :: String -> Destino
+marDelPlata unMes unaPersona | elem unMes mesesEstresantes = unaPersona {stress = (stress unaPersona) + 10}
+                             | otherwise = unaPersona {stress =  resta (stress unaPersona) (stressAReducir unaPersona)}
+
+lasToninas :: Bool -> Destino
+lasToninas tienePlata unaPersona | tienePlata = unaPersona {stress = div (stress unaPersona) 2}
+                                 | otherwise = marDelPlata "Junio" unaPersona
+
+juan :: Persona
+juan = Persona "Juan" 37 80 [] []
+
+fabiana :: Persona
+fabiana = Persona "Fabiana" 41 50 [] [juan]
+
+rigoberta :: Persona
+rigoberta = Persona "Rigoberta" 31 20 [] [juan]
+
+veronica :: Persona
+veronica = Persona "Veronica" 11 51 [] [juan]
+
+puertoMadryn :: Destino
+puertoMadryn unaPersona = unaPersona {stress = 0, amigos = (amigos unaPersona) ++ [juan]}
+
+laAdela :: Destino
+laAdela = id
+
+elijeDestino :: Destino -> Destino
+elijeDestino unDestino unaPersona = unDestino unaPersona
+
+personaDpsViaje unDestino unaPersona = elijeDestino unDestino unaPersona 
+
+desenchufarse :: Preferencia
+desenchufarse unaPersona unDestino = (stress . personaDpsViaje unDestino) unaPersona < (stress unaPersona)
+
+enchufarseEspecial :: Number -> Preferencia
+enchufarseEspecial unStress unaPersona unDestino = (stress . personaDpsViaje unDestino) unaPersona == unStress
+
+socializar :: Preferencia
+socializar unaPersona unDestino = (cantAmigos . personaDpsViaje unDestino) unaPersona > (cantAmigos unaPersona)
+
+sinPretensiones :: Preferencia
+sinPretensiones unaPersona unDestino = True
+
+type Contingente = [Persona]
+
+cumplePreferencia :: Persona -> Destino -> Preferencia -> Bool
+cumplePreferencia unaPersona unDestino unaPreferencia = unaPreferencia unaPersona unDestino
+
+tienePreferencia :: Preferencia
+tienePreferencia unaPersona unDestino = any (cumplePreferencia unaPersona unDestino) (preferencias unaPersona)
+
+destinoApto :: Destino -> Contingente -> Bool
+destinoApto unDestino unContingente = all (flip (tienePreferencia) unDestino) unContingente
+
+destinoPiola :: Destino -> Contingente -> Bool
+destinoPiola unDestino unContingente = 100 > (sum . map stress . map (personaDpsViaje unDestino)) unContingente
+
+type Paquete = [Destino]
+
+stressPostPaquete :: Persona -> Paquete -> Number
+stressPostPaquete unaPersona unPaquete = (stress . foldl (flip ($)) unaPersona ) unPaquete
+
+nombreDistinto :: Persona -> Persona -> Bool
+nombreDistinto unaPersona otraPersona = (nombre unaPersona) /= (nombre otraPersona)
+
+loTieneComoAmigo :: Persona -> Persona -> Bool
+loTieneComoAmigo unaPersona otraPersona = elem (nombre unaPersona) ((map nombre . amigos) otraPersona)
+
+listaSinPersonaEvaluada :: Contingente -> Persona -> Contingente
+listaSinPersonaEvaluada unContingente unaPersona = filter (nombreDistinto unaPersona) unContingente
+
+esAmigoDeAlguien :: Contingente -> Persona -> Bool
+esAmigoDeAlguien unContingente unaPersona = any (loTieneComoAmigo unaPersona) (listaSinPersonaEvaluada unContingente unaPersona)
+
+algunaPersonaLaPasaBien :: Contingente -> Bool
+algunaPersonaLaPasaBien unContingente = any (esAmigoDeAlguien unContingente) unContingente
+
+contingenteTOC [a] = True
+contingenteTOC [a,b] = (even.puntosDeScoring) b
+contingenteTOC (x:y:ys) | (not.even.puntosDeScoring) y = False
+                        | otherwise = contingenteTOC ys 
+
+
+
+

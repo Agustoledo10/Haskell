@@ -1,0 +1,57 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+data Bien = Bien{
+cantidad :: Number,
+descripcion :: String
+} deriving (Show,Eq)
+
+data Personaje = Personaje {
+nombre :: String,
+robos :: [Bien],
+trabajos :: Number,
+estilo :: (Personaje -> Objetivo -> Personaje)
+}deriving (Show,Eq)
+
+buscarBien :: String -> Bien -> Bool
+buscarBien unaDescripcion unBien = ((== unaDescripcion) . descripcion) unBien
+
+cantidadDe :: String -> Personaje -> Number
+cantidadDe unBien unPersonaje = (cantidad . head . filter (buscarBien unBien)) (robos unPersonaje)
+
+modificarBien :: Bien -> Bien -> Bien 
+modificarBien unBien otroBien | (descripcion unBien) == (descripcion otroBien) = otroBien {cantidad = (cantidad otroBien) + (cantidad unBien)}
+                              | otherwise = otroBien
+
+sumarCantBien :: Bien -> [Bien] -> [Bien]
+sumarCantBien unBien listaBienes = map (modificarBien unBien) listaBienes
+
+apropiar  :: Personaje -> Bien -> Personaje
+apropiar unPersonaje unBien | any (buscarBien (descripcion unBien)) (robos unPersonaje) = unPersonaje{ robos = sumarCantBien unBien (robos unPersonaje)}
+                            | otherwise = unPersonaje {robos = (robos unPersonaje) ++ [unBien]}
+
+data Objetivo = Objetivo{
+lugar :: String,
+botin :: [Bien]
+} deriving (Show,Eq)
+
+ratero :: Personaje -> Objetivo -> Personaje
+ratero unPersonaje unObjetivo = apropiar unPersonaje ((head.botin) unObjetivo) 
+
+pocasUnidades :: Bien -> Bool
+pocasUnidades unBien = (cantidad unBien) < 10
+
+express :: Personaje -> Objetivo -> Personaje
+express unPersonaje unObjetivo = foldl (apropiar) unPersonaje (filter (pocasUnidades) (botin unObjetivo))
+
+estafa :: Personaje -> Objetivo -> Personaje
+estafa unPersonaje unObjetivo = foldl (apropiar) unPersonaje (botin unObjetivo)
+
+trabajoSofisticado :: Personaje -> Objetivo -> Personaje
+trabajoSofisticado unPersonaje unObjetivo = (estilo unPersonaje) unPersonaje unObjetivo
+
+alcatraz :: Personaje -> Personaje
+alcatraz unPersonaje = unPersonaje{ estilo = estafa}
+
+sierraChica :: 

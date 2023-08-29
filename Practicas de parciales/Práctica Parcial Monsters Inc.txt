@@ -1,0 +1,90 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+
+type Grito = (String,Number,Bool)
+
+nivelDeTerror :: String -> Number 
+nivelDeTerror = length 
+
+energiaDeGrito :: Grito -> Number  
+energiaDeGrito (onomatopeya, intensidad , mojoLaCama) | mojoLaCama = (nivelDeTerror onomatopeya) * intensidad * intensidad
+                                                      | otherwise = (3*(nivelDeTerror onomatopeya)) + intensidad
+
+
+type Ninio = (String,Number,Number)
+
+mojaCamaSullivan :: Ninio -> Bool
+mojaCamaSullivan (_,edad,_) = edad < 3
+
+nombreNinio :: Ninio -> String
+nombreNinio (nombre,_,_) = nombre 
+
+edadNinio :: Ninio -> Number
+edadNinio (_,edad,_) = edad
+
+alturaNinio :: Ninio -> Number
+alturaNinio (_,_,altura) = altura 
+
+onomatopeyaSullivan :: Ninio -> String
+onomatopeyaSullivan unNinio = take (length (nombreNinio unNinio)) (repeat 'A') ++ "GH"
+
+intensidadSullivan :: Ninio -> Number
+intensidadSullivan unNinio = 20 / (edadNinio unNinio)
+
+sullivan :: Ninio -> Grito 
+sullivan unNinio =  ((onomatopeyaSullivan unNinio),(intensidadSullivan unNinio),(mojaCamaSullivan unNinio))
+
+intensidadRandall :: Ninio -> Number
+intensidadRandall = length . nombreNinio
+
+mojaCamaRandall :: Ninio -> Bool
+mojaCamaRandall unNinio = (edadNinio unNinio) >= 0.8 && (edadNinio unNinio) <= 1.2
+
+randall :: Ninio -> Grito
+randall unNinio = ("Mamadera!",intensidadRandall unNinio,mojaCamaRandall unNinio)
+
+abc = ['a'..'z']
+
+chuckNorris :: Ninio -> Grito 
+chuckNorris unNinio = (abc,1000,True)
+
+ositoCariniosito :: Ninio -> Grito
+ositoCariniosito unNinio = ("uf",(edadNinio unNinio),False)
+
+doble = (*2)
+
+triple = (*3)
+
+raizCuadrada = sqrt
+
+pam funciones valor = map (flip ($) valor) funciones
+--pam funciones valor = map ((/ a b -> b a) valor) funciones
+
+gritos :: [(Ninio -> Grito)] -> Ninio -> [Grito]
+gritos unEquipo unNinio = pam unEquipo unNinio
+
+type Risa = (Number,Number)
+-- foldr pues al aplicar el pam a cada niño del campamento, obtengo por cada uno de ellos una lista de gritos, dado que de igual manera voy a querer considerar 
+-- todos los gritos juntos sin discriminar pues se trata de una sumatoria total, los junto todos en una lista que me permita aplicar la funcion con la que se obtiene
+-- energia x grito y luego se suma 
+
+produccionEnergeticaGritos :: [(Ninio -> Grito)] -> [Ninio] -> Number
+produccionEnergeticaGritos unEquipo unCampamento = (sum . map energiaDeGrito . foldr1 (++) . map (pam unEquipo)) unCampamento
+
+energiaDeRisa :: Risa -> Number
+energiaDeRisa (duracion,intensidad) = duracion ^ intensidad
+
+produccionEnergeticaRisas :: [(Ninio -> Risa)] -> [Ninio] -> Number
+produccionEnergeticaRisas unEquipo unCampamento =(sum . map energiaDeRisa . foldr1 (++) . map (pam unEquipo)) unCampamento
+
+
+produccionEnergetica unEquipo unCampamento = (sumatoriaEnergias.(extraerEnergias unEquipo)) unCampamento
+
+extraerEnergias unEquipo unCampamento = (foldr1(++) . map (\ niño -> pam niño unEquipo)) unCampamento
+
+sumatoriaEnergias produccion energiaProduccion = (sum . map (energiaProduccion)) produccion
+
+kevin = ("kevin", 2, 1.1)
+
+

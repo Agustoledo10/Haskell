@@ -1,0 +1,66 @@
+module Library where
+import PdePreludat
+import Prelude (Int)
+import Prelude (Float)
+
+data Persona = Persona {
+edadPersona :: Number,
+listaItems :: [String],
+nivelExperiencia :: Number
+} deriving (Show,Eq)
+
+data Criatura = Criatura {
+nivelPeligro :: Number,
+condicionDeshacerse :: Persona -> Bool
+} deriving (Show,Eq)
+
+imposible :: Persona -> Bool
+imposible unaPersona = False
+
+elSiempreDetras :: Criatura
+elSiempreDetras = Criatura 0 imposible
+
+tieneItem :: String -> Persona -> Bool
+tieneItem unItem unaPersona = elem unItem . listaItems $ unaPersona
+
+gnomos :: Number ->  Criatura
+gnomos unaCantidad = Criatura (2^unaCantidad) (tieneItem "soplador")
+
+fantasma :: (Persona -> Bool) -> Number -> Criatura
+fantasma unAsuntoPendiente unaCategoria = Criatura (20*unaCategoria) unAsuntoPendiente
+
+sumaExperiencia :: Number -> Persona -> Persona
+sumaExperiencia unaCantidad unaPersona = unaPersona { nivelExperiencia = ((+unaCantidad) . nivelExperiencia) unaPersona}
+
+enfrentaCriatura :: Persona -> Criatura -> Persona
+enfrentaCriatura unaPersona unaCriatura | (condicionDeshacerse unaCriatura) unaPersona = sumaExperiencia (nivelPeligro unaCriatura) unaPersona
+                                        | otherwise = sumaExperiencia 1 unaPersona
+
+
+
+zipWithIf :: (a -> b -> b) -> (b -> Bool) -> [a] -> [b] -> [b] 
+
+zipWithIf _ _ _ [] = []
+
+
+zipWithIf unaFuncion unaCondicion (x:xs) (y:ys) | (not . unaCondicion) y = (y:zipWithIf unaFuncion unaCondicion (x:xs) ys)
+                                                | otherwise = ((unaFuncion x y): zipWithIf unaFuncion unaCondicion xs ys)
+
+abecedarioDesde :: Char -> [Char]
+abecedarioDesde unaLetra = [unaLetra .. 'z'] ++ (init ['a' .. unaLetra])
+
+
+
+nuevaPos :: Char -> Char -> Number
+nuevaPos unaLetraClave letraDescifrar | (not . elem letraDescifrar) [unaLetraClave .. 'z'] = length ([unaLetraClave .. 'z'] ++ (init ['a' .. letraDescifrar]))
+                                      | otherwise = length [unaLetraClave .. letraDescifrar] - 1 
+
+desencriptarLetra :: Char -> Char -> Char
+desencriptarLetra unaLetraClave letraDescifrar = (!!) ['a'..'z'] (nuevaPos unaLetraClave letraDescifrar)
+
+cesar :: Char -> String -> String
+cesar unaLetraClave textoEncriptado = zipWithIf (desencriptarLetra) (flip elem ['a'..'z']) (repeat unaLetraClave) textoEncriptado
+
+ej :: [String]
+ej = map (flip (cesar) "jrzel zrfaxal!") ['a'..'z']
+
